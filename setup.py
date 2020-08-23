@@ -4,12 +4,8 @@ with open("README.rst", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="nikol", 
-    version="0.0.1",
     author="",
     author_email="",
-    description="nikol",
-    long_description="README.rst",
     url="https://github.com/nikltk/nikol",
     packages=setuptools.find_packages(),
     classifiers=[
