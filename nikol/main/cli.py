@@ -15,7 +15,7 @@ import argparse
 import configparser
 
 import nikol
-from nikol.main import command
+from nikol.main import commander
 
 class App(object):
     def __init__(self, program: str = 'nikol', version = nikol.__version__):
@@ -26,7 +26,7 @@ class App(object):
         self.errors = []
         self.warnings = []
 
-        self.commander = command.Commander(self)
+        self.commander = commander.Commander(self)
         
         
     def run(self, argv):
