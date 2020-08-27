@@ -2,9 +2,6 @@ import argparse
 import sys
 import pkgutil
 
-
-import nikol.main.commander
-
 class Commander:
     """Commander: parse arguments and dispatch commands
     """
@@ -12,41 +9,16 @@ class Commander:
         self.app = app
         
         # parser
-        self.parser = argparse.ArgumentParser(prog=self.app.program)
+        self.parser = argparse.ArgumentParser(prog=self.app.program, add_help=False)
         self.parser._positionals.title = 'commands'
-        self.parser.set_defaults(command='help')
-        #self.parser.add_argument('command', type=str)
-        self.parser.add_argument('--version', action='store_true')
+        self.parser.set_defaults(command='help')                     # nikol
+        self.parser.add_argument('--help', action='store_true')      # nikol --help
+        self.parser.add_argument('--version', action='store_true')   # nikol --version
         self.subparsers = self.parser.add_subparsers(help='')
         
     def parse_args(self, argv):
-        # -h|--help are dispatched by parse_args 
-        # and exit the program immediately
-        #
-        # parses only known arguments.
-        # 
-        # unknown arguments (-x|--xargs) are exptected to be processed by the
-        # ComplexCommand object
 
-        self._check_argv_and_register_commands(argv)
-
-        args, argv = self.parser.parse_known_args(argv)
-            
-        return args
-
-    def run(self, args):
-        if args.version:
-            self.print_version()
-        else:
-            mod = __import__('nikol.main.command.' + args.command, fromlist=[''])
-            mod.run(self.app, args)
-
-    def print_version(self):
-        print(self.app.program, 'version', self.app.version)
-
-        
-    def _check_argv_and_register_commands(self, argv):
- 
+        # check argv and register commands
         # nikol xxx ... => register nikol.main.command.xxx
         #
         if len(argv) > 0 and not argv[0].startswith('-'):
@@ -55,18 +27,50 @@ class Commander:
                 mod = __import__('nikol.main.command.' + command, fromlist=[''])
                 mod.register(self)
             except ModuleNotFoundError:
-                self.print_help()
+                sys.exit("nikol: '{}' is not a nikol command. See 'nikol --help'".format(command))
+ 
+        # parses only known arguments.
+        # 
+        # unknown arguments (-x|--xargs) are exptected to be processed by the
+        # ComplexCommand object
         
-    def print_help(self):
-
-        modules = pkgutil.iter_modules(nikol.main.command.__path__)
-        for module_info in modules:
-            mod = __import__('nikol.main.command.' + module_info.name, fromlist=[''])
-            mod.register(self)
-
-        self.parser.print_help()
+        args, argv = self.parser.parse_known_args(argv)
             
+        return args
 
+    def run(self, argv):
+
+        args = self.parse_args(argv)
+
+        if args.help:
+            self.print_help()
+        elif args.version:
+            self.print_version()
+        else:
+            mod = __import__('nikol.main.command.' + args.command, fromlist=[''])
+            mod.run(self.app, args)
+
+    def add_command_parser(self, command, help):
+        subparser = self.subparsers.add_parser(command, help=help)
+        return subparser
+
+    def print_version(self):
+        print(self.app.program, 'version', self.app.version)
+
+    def print_help(self):
+        self._register_commands()
+        self.parser.print_help()
+
+    def _register_commands(self):
+        """registers all modules from nikol.main.command to self.subparsers
+        """
+        pkg = __import__('nikol.main.command', fromlist=[''])
+        for module_info in pkgutil.iter_modules(pkg.__path__):
+            if module_info.name not in self.subparsers.choices :
+                mod = __import__('nikol.main.command.' + module_info.name, fromlist=[''])
+                mod.register(self)
+
+       
         
         
 

@@ -3,8 +3,7 @@ from nikol.main.command import SimpleCommand
 
 
 def register(commander):
-    # help
-    help_parser = commander.subparsers.add_parser('help', help='print help')
+    help_parser = commander.add_command_parser('help', help='print help')
     help_parser.set_defaults(command='help')
    
 

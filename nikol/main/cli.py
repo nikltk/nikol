@@ -27,20 +27,13 @@ class App(object):
         self.warnings = []
 
         self.commander = commander.Commander(self)
-        
-        
-    def run(self, argv):
+
         self.cwd = os.getcwd()
-        args = self.commander.parse_args(argv)
-
-
-        # some commands does not require initialization of the workspace
-        # if args.command == 'init_command' or args.command == 'help_command':
-        #    pass
-        # else:
-        #    pass
-
-        self.commander.run(args)
+        self._config = configparser.ConfigParser()
+        
+        
+    def run(self, argv=[]):
+        self.commander.run(argv)
 
     def exit(self):
         """Exits the program. Checks errors and warnings.
