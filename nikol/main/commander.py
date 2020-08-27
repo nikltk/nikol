@@ -1,5 +1,9 @@
 import argparse
 import sys
+import pkgutil
+
+
+import nikol.main.commander
 
 class Commander:
     """Commander: parse arguments and dispatch commands
@@ -11,8 +15,9 @@ class Commander:
         self.parser = argparse.ArgumentParser(prog=self.app.program)
         self.parser._positionals.title = 'commands'
         self.parser.set_defaults(command='help')
+        #self.parser.add_argument('command', type=str)
         self.parser.add_argument('--version', action='store_true')
-        self._register_commands()
+        self.subparsers = self.parser.add_subparsers(help='')
         
     def parse_args(self, argv):
         # -h|--help are dispatched by parse_args 
@@ -22,7 +27,11 @@ class Commander:
         # 
         # unknown arguments (-x|--xargs) are exptected to be processed by the
         # ComplexCommand object
+
+        self._check_argv_and_register_commands(argv)
+
         args, argv = self.parser.parse_known_args(argv)
+            
         return args
 
     def run(self, args):
@@ -35,17 +44,29 @@ class Commander:
     def print_version(self):
         print(self.app.program, 'version', self.app.version)
 
-    def _register_commands(self):
         
-        self.subparsers = self.parser.add_subparsers(help='')
-
-        # help
-        help_parser = self.subparsers.add_parser('help', help='print help')
-        help_parser.set_defaults(command='help')
+    def _check_argv_and_register_commands(self, argv):
+ 
+        # nikol xxx ... => register nikol.main.command.xxx
+        #
+        if len(argv) > 0 and not argv[0].startswith('-'):
+            command = argv[0]
+            try: 
+                mod = __import__('nikol.main.command.' + command, fromlist=[''])
+                mod.register(self)
+            except ModuleNotFoundError:
+                self.print_help()
         
-        # please
-        please_parser = self.subparsers.add_parser('please', help='toy complex command for the test development')
-        please_parser.add_argument('subargv', type=str, nargs=argparse.REMAINDER, help='subargument values')
-        please_parser.set_defaults(command='please')
+    def print_help(self):
 
+        modules = pkgutil.iter_modules(nikol.main.command.__path__)
+        for module_info in modules:
+            mod = __import__('nikol.main.command.' + module_info.name, fromlist=[''])
+            mod.register(self)
+
+        self.parser.print_help()
+            
+
+        
+        
 

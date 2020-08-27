@@ -1,4 +1,11 @@
+import argparse
 from nikol.main.command import ComplexCommand
+
+def register(commander):
+    subparsers = commander.subparsers
+    please_parser = subparsers.add_parser('please', help='toy complex command for the test development')
+    please_parser.add_argument('subargv', type=str, nargs=argparse.REMAINDER, help='subargument values')
+    please_parser.set_defaults(command='please')
 
 def run(app, args):
     PleaseCommand(app)(args)
