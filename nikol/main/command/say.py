@@ -1,11 +1,11 @@
-"""say: a toy simple command"""
+# say
+#
+#
+__doc__ = """a toy simple command"""
 
 import sys
 import argparse
 from nikol.main.command import SimpleCommand
-
-_command = 'say'
-_help = 'a toy simple command'
 
 def init(app):
     return SayCommand(app)

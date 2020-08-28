@@ -5,7 +5,12 @@ class Command(object):
     def __init__(self, app, name):
         self.app = app 
         self.name = name
-        self.parser = argparse.ArgumentParser()
+        if self.app is not None:
+            progname = self.app.program + ' ' + name
+        else:
+            progname = name
+            
+        self.parser = argparse.ArgumentParser(prog=progname)
         
     def run(self, argv):
         pass

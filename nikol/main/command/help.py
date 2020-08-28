@@ -1,11 +1,11 @@
-"""print help"""
+#
+#
+#
+__doc__ = """print help"""
 
 import sys
 import argparse
 from nikol.main.command import SimpleCommand
-
-_command = 'help'
-_help = 'print help'
 
 def init(app):
     return HelpCommand(app)

@@ -1,12 +1,11 @@
-"""please: a toy complex command
-"""
+#
+#
+#
+__doc__ = """please: a toy complex command"""
 
 import sys
 import argparse
 from nikol.main.command import ComplexCommand
-
-_command = 'please'
-_help = 'a toy complex command'
 
 def init(app):
     return PleaseCommand(app)

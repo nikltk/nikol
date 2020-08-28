@@ -25,12 +25,13 @@ class Commander:
             command = argv[0]
             try: 
                 mod = __import__('nikol.main.command.' + command, fromlist=[''])
-                self.add_command_parser(mod._command, help=mod._help)
+                self.add_command_parser(command, help=mod.__doc__)
             except ModuleNotFoundError:
                 sys.exit("nikol: '{}' is not a nikol command. See 'nikol --help'".format(command))
  
         # Use parse_known_args() to pass -h|--help option to the subparsers.
-        # parse_args() takes -h|--help and print help and exit the program.
+        # parse_args() takes -h|--help and immediately print help and exit the
+        # program.
         args, argv = self.parser.parse_known_args(argv)   # pass -h|--help
         
         return args
@@ -79,7 +80,7 @@ class Commander:
         for module_info in pkgutil.iter_modules(pkg.__path__):
             if module_info.name not in self.subparsers.choices :
                 mod = __import__('nikol.main.command.' + module_info.name, fromlist=[''])
-                self.add_command_parser(mod._command, mod._help)
+                self.add_command_parser(module_info.name, mod.__doc__)
 
        
         
