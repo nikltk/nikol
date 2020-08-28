@@ -1,4 +1,4 @@
-# say
+# say.py
 #
 #
 __doc__ = """a toy simple command"""
