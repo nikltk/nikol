@@ -5,38 +5,31 @@ class Command(object):
     def __init__(self, app, name):
         self.app = app 
         self.name = name
-
-    def __call__(self, argv):
-        self.call(argv)
-   
+        self.parser = argparse.ArgumentParser()
+        
     def run(self, argv):
-        self.__call__(argv)
+        pass
         
 class SimpleCommand(Command):
     def __init__(self, app = None, name : str = ''):
         super().__init__(app, name)
-        self.parser = argparse.ArgumentParser()
         
-    def __call__(self, argv):
-        args = self.parser.parse_args(argv)
-        self.call(args)
-
-    
 class ComplexCommand(Command):
     """ComplexCommand has its own argument parser to process subcommand and subarguments"""
     
     def __init__(self, app = None, name : str = ''):
         super().__init__(app, name)
-        # self.parser = argparse.ArgumentParser(prog=self.app.program + ' ' + name)
-        self.parser = argparse.ArgumentParser(prog='nikol' + ' ' + name)
-        self.parser._positionals.title = 'subcommands'
-        self.parser.set_defaults(command='help', func='help_command')
-        self.subparsers = self.parser.add_subparsers()
+        self.subparsers = self.parser.add_subparsers(title='subcommands', help='command help')
 
     def add_parser(self, *args, **kwargs):
         return self.subparsers.add_parser(*args, **kwargs)
         
-    def __call__(self, argv):
-        args = self.parser.parse_args(argv)
-        getattr(self, args.func)(args)
- 
+    def run(self, argv):
+        if len(argv) == 0:
+            self.parser.print_help()
+        else:
+            args = self.parser.parse_args(argv)
+            getattr(self, args.func)(args)
+
+    def print_help(self, args):
+        self.parser.print_help()

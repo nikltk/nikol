@@ -29,12 +29,10 @@ class Commander:
             except ModuleNotFoundError:
                 sys.exit("nikol: '{}' is not a nikol command. See 'nikol --help'".format(command))
  
-        # parses only known arguments.
-        # 
-        # unknown arguments (-x|--xargs) are exptected to be processed by the
-        # ComplexCommand object
+        # Use parse_known_args() to pass -h|--help option to the subparsers.
+        # parse_args() takes -h|--help and print help and exit the program.
+        args, argv = self.parser.parse_known_args(argv)   # pass -h|--help
         
-        args = self.parser.parse_args(argv)
         return args
             
     def run(self, argv):
@@ -43,12 +41,14 @@ class Commander:
 
         if args.help:
             self.print_help()
+        elif args.command == 'help' and not hasattr(args, 'subargv'):
+            self.print_help()
         elif args.version:
             self.print_version()
         else:
             mod = __import__('nikol.main.command.' + args.command, fromlist=[''])
             command = mod.init(self.app)
-            command(args.subargv)
+            command.run(argv[1:]) # args.subargv
 
     def add_command_parser(self, command: str, help: str):
         """
@@ -57,10 +57,10 @@ class Commander:
         commander.add_command_parser('please', help='please command')
         ```
         """
-        subparser = self.subparsers.add_parser(command, help=help)
+        subparser = self.subparsers.add_parser(command, help=help, add_help=False)
 
         # prevent parsing subarguments
-        subparser.add_argument('subargv', type=str, nargs=argparse.REMAINDER, help='subargument values')
+        subparser.add_argument('subargv', type=str, nargs=argparse.REMAINDER)
         subparser.set_defaults(command=command)
         
         return subparser

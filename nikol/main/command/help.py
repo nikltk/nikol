@@ -14,8 +14,7 @@ class HelpCommand(SimpleCommand):
     def __init__(self, app = None, name = 'help'):
         super().__init__(app, name)
         
-    def call(self, args):
-        print(args)
+    def run(self, argv):
         self.app.commander.print_help()
  
 def main(argv=None):
