@@ -1,17 +1,29 @@
+"""print help"""
+
+import sys
 import argparse
 from nikol.main.command import SimpleCommand
 
+_command = 'help'
+_help = 'print help'
 
-def register(commander):
-    help_parser = commander.add_command_parser('help', help='print help')
-    help_parser.set_defaults(command='help')
-   
-
-def run(app, args):
-    HelpCommand(app)(args)
-    
+def init(app):
+    return HelpCommand(app)
 
 class HelpCommand(SimpleCommand):
-    def __call__(self, app):
+    def __init__(self, app = None, name = 'help'):
+        super().__init__(app, name)
+        
+    def call(self, args):
+        print(args)
         self.app.commander.print_help()
  
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+
+    command = HelpCommand()
+    command.run(argv)
+
+if __name__ == '__main__' :
+    main()

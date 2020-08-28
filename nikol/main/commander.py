@@ -14,7 +14,7 @@ class Commander:
         self.parser.set_defaults(command='help')                     # nikol
         self.parser.add_argument('--help', action='store_true')      # nikol --help
         self.parser.add_argument('--version', action='store_true')   # nikol --version
-        self.subparsers = self.parser.add_subparsers(help='')
+        self.subparsers = self.parser.add_subparsers(title='commands', help='command help')
         
     def parse_args(self, argv):
 
@@ -25,7 +25,7 @@ class Commander:
             command = argv[0]
             try: 
                 mod = __import__('nikol.main.command.' + command, fromlist=[''])
-                mod.register(self)
+                self.add_command_parser(mod._command, help=mod._help)
             except ModuleNotFoundError:
                 sys.exit("nikol: '{}' is not a nikol command. See 'nikol --help'".format(command))
  
@@ -34,10 +34,9 @@ class Commander:
         # unknown arguments (-x|--xargs) are exptected to be processed by the
         # ComplexCommand object
         
-        args, argv = self.parser.parse_known_args(argv)
-            
+        args = self.parser.parse_args(argv)
         return args
-
+            
     def run(self, argv):
 
         args = self.parse_args(argv)
@@ -48,10 +47,22 @@ class Commander:
             self.print_version()
         else:
             mod = __import__('nikol.main.command.' + args.command, fromlist=[''])
-            mod.run(self.app, args)
+            command = mod.init(self.app)
+            command(args.subargv)
 
-    def add_command_parser(self, command, help):
+    def add_command_parser(self, command: str, help: str):
+        """
+        Add a subparser for `nikol <command>`. For example, `nikol please`
+        ```
+        commander.add_command_parser('please', help='please command')
+        ```
+        """
         subparser = self.subparsers.add_parser(command, help=help)
+
+        # prevent parsing subarguments
+        subparser.add_argument('subargv', type=str, nargs=argparse.REMAINDER, help='subargument values')
+        subparser.set_defaults(command=command)
+        
         return subparser
 
     def print_version(self):
@@ -68,7 +79,7 @@ class Commander:
         for module_info in pkgutil.iter_modules(pkg.__path__):
             if module_info.name not in self.subparsers.choices :
                 mod = __import__('nikol.main.command.' + module_info.name, fromlist=[''])
-                mod.register(self)
+                self.add_command_parser(mod._command, mod._help)
 
        
         
