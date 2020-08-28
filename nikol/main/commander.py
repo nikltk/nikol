@@ -46,10 +46,10 @@ class Commander:
 
         if args.help:
             self.print_help()
-        elif args.command == 'help' and not hasattr(args, 'subargv'):
-            self.print_help()
         elif args.version:
             self.print_version()
+        elif args.command == 'help' and not hasattr(args, 'subargv'):
+            self.print_help()
         else:
             mod = __import__('nikol.main.command.' + args.command, fromlist=[''])
             command = mod.init(self.app)
