@@ -1,7 +1,8 @@
-# help.py
-#
-#
-__doc__ = """print help"""
+"""help.py
+"""
+
+__description__ = 'print help'
+__version__ = '0.1.0'
 
 import sys
 import argparse

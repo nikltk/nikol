@@ -1,7 +1,8 @@
-# please.py
-#
-#
-__doc__ = """please: a toy complex command"""
+"""please: a toy complex command
+"""
+
+__description__ = 'a toy complex command'
+__version__ = '0.1.0'
 
 import sys
 import argparse

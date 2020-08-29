@@ -29,7 +29,10 @@ class Commander:
             command = argv[0]
             try: 
                 mod = __import__('nikol.main.command.' + command, fromlist=[''])
-                self.add_command_parser(command, help=mod.__doc__)
+                try:
+                    self.add_command_parser(command, help=mod.__description__)
+                except AttributeError:
+                    self.add_command_parser(command)
             except ModuleNotFoundError:
                 sys.exit("nikol: '{}' is not a nikol command. See 'nikol --help'".format(command))
  
@@ -55,7 +58,7 @@ class Commander:
             command = mod.init(self.app)
             command.run(argv[1:]) # args.subargv
 
-    def add_command_parser(self, command: str, help: str):
+    def add_command_parser(self, command: str, help: str = ''):
         """
         Add a subparser for `nikol <command>`. For example, `nikol please`
         ```
@@ -84,7 +87,10 @@ class Commander:
         for module_info in pkgutil.iter_modules(pkg.__path__):
             if module_info.name not in self.subparsers.choices :
                 mod = __import__('nikol.main.command.' + module_info.name, fromlist=[''])
-                self.add_command_parser(module_info.name, mod.__doc__)
+                try:
+                    self.add_command_parser(module_info.name, help=mod.__description__)
+                except AttributeError:
+                    self.add_command_parser(module_info.name)
 
        
         

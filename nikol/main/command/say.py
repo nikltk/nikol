@@ -1,7 +1,8 @@
-# say.py
-#
-#
-__doc__ = """a toy simple command"""
+""" say: a toy simple command
+"""
+
+__description__ = 'a toy simple command'
+__version__ = '0.1.0'
 
 import sys
 import argparse
