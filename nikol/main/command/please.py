@@ -1,8 +1,10 @@
 """please: a toy complex command
 """
 
-__description__ = 'a toy complex command'
-__version__ = '0.1.0'
+_setup_ = {
+    'description' : 'a toy complex command',
+    'version' : '0.1.0'
+}
 
 import sys
 import argparse

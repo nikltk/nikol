@@ -1,8 +1,10 @@
 """help.py
 """
 
-__description__ = 'print help'
-__version__ = '0.1.0'
+_setup_ = {
+    'description' : 'print help',
+    'version' : '0.1.0'
+}
 
 import sys
 import argparse

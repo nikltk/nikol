@@ -1,8 +1,10 @@
 """ say: a toy simple command
 """
 
-__description__ = 'a toy simple command'
-__version__ = '0.1.0'
+_setup_ = {
+    'version' : '0.1.0',
+    'description' : 'a toy simple command'
+}
 
 import sys
 import argparse

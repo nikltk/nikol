@@ -30,7 +30,7 @@ class Commander:
             try: 
                 mod = __import__('nikol.main.command.' + command, fromlist=[''])
                 try:
-                    self.add_command_parser(command, help=mod.__description__)
+                    self.add_command_parser(command, help=mod._setup_['description'])
                 except AttributeError:
                     self.add_command_parser(command)
             except ModuleNotFoundError:
@@ -88,7 +88,7 @@ class Commander:
             if module_info.name not in self.subparsers.choices :
                 mod = __import__('nikol.main.command.' + module_info.name, fromlist=[''])
                 try:
-                    self.add_command_parser(module_info.name, help=mod.__description__)
+                    self.add_command_parser(module_info.name, help=mod._setup_['description'])
                 except AttributeError:
                     self.add_command_parser(module_info.name)
 
