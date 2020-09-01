@@ -13,7 +13,7 @@ class Commander:
         self.app = app
         
         # parser
-        self.parser = argparse.ArgumentParser(prog=self.app.program, add_help=False)
+        self.parser = argparse.ArgumentParser(prog=self.app.name, add_help=False)
         self.parser._positionals.title = 'commands'
         self.parser.set_defaults(command='help')                     # nikol
         self.parser.add_argument('--help', action='store_true')      # nikol --help
@@ -74,7 +74,7 @@ class Commander:
         return subparser
 
     def print_version(self):
-        print(self.app.program, 'version', self.app.version)
+        print(self.app.name, 'version', self.app.version)
 
     def print_help(self):
         self._register_commands()

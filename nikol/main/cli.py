@@ -12,14 +12,15 @@ import sys
 import os
 import subprocess
 import argparse
-import configparser
 
 import nikol
 from nikol.main import commander
+from nikol.core.config import Config, ConfigFinder
+
 
 class App(object):
-    def __init__(self, program: str = 'nikol', version = nikol.__version__):
-        self.program = program
+    def __init__(self, name: str = 'nikol', version = nikol.__version__):
+        self.name = name
         self.version = version
 
         self.critical_failure = False 
@@ -28,9 +29,18 @@ class App(object):
 
         self.commander = commander.Commander(self)
 
-        self.cwd = os.getcwd()
-        self._config = configparser.ConfigParser()
-        
+        self.__config = None
+
+    @property
+    def config(self):
+        if self.__config is None:
+            self.cwd = os.getcwd()
+            try:
+                self.__config = Config(self.name, self.cwd)
+            except:
+                raise Exception('fatal: not a nikol workspace (or any of the parent directories): .nikol')
+            
+        return self.__config
         
     def run(self, argv=[]):
         self.commander.run(argv)

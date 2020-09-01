@@ -6,7 +6,7 @@ class Command(object):
         self.app = app 
         self.name = name
         if self.app is not None:
-            progname = self.app.program + ' ' + name
+            progname = self.app.name + ' ' + name
         else:
             progname = name
             

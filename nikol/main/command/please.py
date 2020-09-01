@@ -26,12 +26,21 @@ class PleaseCommand(ComplexCommand):
         sum_parser.add_argument('numbers', type=float, nargs='+', help='numbers')
         sum_parser.set_defaults(func='sum')
 
+        config_parser = self.add_parser('config', help='test config')
+        config_parser.set_defaults(func='config_command')
+        
     def say_command(self, args):
         mod = __import__('nikol.misc.say', fromlist=[''])
         print(mod.say(args.something, args.format))
 
     def sum(self, args):
         print(sum(args.numbers))
+
+    def config_command(self, args):
+        try:
+            print(self.app.config)
+        except Exception as e:
+            sys.exit(str(e))
 
        
 def main(argv=None):
