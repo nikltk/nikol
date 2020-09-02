@@ -27,6 +27,8 @@ class App(object):
         self.errors = []
         self.warnings = []
 
+        self.cwd = os.getcwd()
+        
         self.commander = commander.Commander(self)
 
         self.__config = None
@@ -34,7 +36,6 @@ class App(object):
     @property
     def config(self):
         if self.__config is None:
-            self.cwd = os.getcwd()
             try:
                 self.__config = Config(self.name, self.cwd)
             except:
