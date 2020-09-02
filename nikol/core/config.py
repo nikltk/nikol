@@ -3,8 +3,6 @@
 import configparser
 import os.path
 import sys
-import collections
-import logging
 
 class ConfigFinder(object):
     def __init__(self, program_name: str, cwd: str, config_basename='config'):
