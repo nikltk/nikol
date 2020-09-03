@@ -20,7 +20,8 @@ class ConfigFinder(object):
     def global_config_dirname(self):
         if self.__global_config_dirname is None:
             self.__global_config_dirname = self.__find_global_config_dir()
-            self.__init_global_config_file()
+            if not os.path.exists(self.global_config_filename):
+                self.__init_global_config_file()
             
         return self.__global_config_dirname
     
@@ -162,6 +163,7 @@ class Config(configparser.ConfigParser):
         # update
         getattr(config, func)(*args)
             
+
         # write target config file
         with open(config_filename, 'w') as configfile:
             config.write(configfile)
