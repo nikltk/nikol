@@ -1,4 +1,3 @@
-import re, sys
 from itertools import groupby
 
 def sort(data, keys=[]):
@@ -23,41 +22,3 @@ def sort(data, keys=[]):
             for item in subgroup_sorted:
                 data_to_be_returned.append(item)
         return data_to_be_returned
-
-def print_help():
-    print("use: {}")
-
-if __name__ == "__main__":
-    key_list = []
-    for arg in sys.argv:
-        print("arg:", arg)
-        rs = re.findall("r", arg)
-        ns = re.findall("n", arg)
-        if not re.match("-?r?n?r?k?[0-9]+n?r?n?", arg):
-            well_formed_command = False
-            break
-        elif len(rs) > 1:
-            well_formed_command = False
-            break
-        elif len(ns) > 1:
-            well_formed_command = False
-            break
-        else:
-            well_formed_command = True
-            key_num = re.findall("[0-9]+", arg)
-            is_num = ["s","n"][ns==[]]
-            is_rev = rs != []
-            key_list.append({"key":key_num, "number":is_num, "reverse":is_rev})
-                
-    print(key_list)
-    if not well_formed_command:
-        print_help()
-    else:
-        parsed_data = []
-        for line in sys.stdin:
-            parsed_data.append(line.strip().split("\t"))
-        parsed_data_sorted = sort(parsed_data, keys=key_list)
-
-        for line in parsed_data_sorted:
-            sys.stdout.write('\t'.join(line)+"\n")
-
