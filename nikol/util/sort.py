@@ -7,7 +7,7 @@ data를 keys에 나타난 기준대로 정렬된 값을 반환하는 함수입�
 
 data는 list의 list 형태여야 합니다.
 
-keys는 dict의 list 형태여야 하며, 각 dict는 "key", "number", "reverse" 키에 해당하는 값을 가집니다. 각 dict 원소에서 "key"에 해당하는 값이 N이라면 data에서 각각의 리스트의 N번째 항목의 값을 기준으로 리스트들을 정렬하게 됩니다. 각 dict에서 "number"가 True인 경우 숫자라는 가정하에서 정렬하게 되고 False인 경우 문자열이라는 가정 하에서 정렬하게 됩니다. 각 dict 원소에서 "reverse" 값은 정렬 순서를 정방향으로 할지 역방향으로 할지 결정해주는 True 혹은 False 값입니다.
+keys는 dict의 list 형태여야 하며, 각 dict는 "key", "number", "reverse" 키에 해당하는 값을 가집니다. 각 dict 원소에서 "key"에 해당하는 값이 N이라면 data에서 각각의 리스트의 N번째 항목의 값을 기준으로 리스트들을 정렬하게 됩니다. 각 dict에서 "type"이 "int"인 경우 정수라는 가정하에서, "float"인 경우 실수라는 가정하에서 정렬하게 되고 "string"인 경우 문자열이라는 가정 하에서 정렬하게 됩니다. 각 dict 원소에서 "reverse" 값은 정렬 순서를 정방향으로 할지 역방향으로 할지 결정해주는 True 혹은 False 값입니다.
 
 keys에 여러 dict 원소가 있을 경우 첫번째 원소를 기준으로 먼저 정렬한 뒤 그 정렬된 하위 그룹 안에서 그 다음 dict 값을 기준으로 정렬하는 식으로 각 원소에 대해 차례대로 정렬합니다. 
 
@@ -17,11 +17,13 @@ keys에 여러 dict 원소가 있을 경우 첫번째 원소를 기준으로 먼
         return data
     else:
         field_num = int(keys[0]["key"])-1
-        is_num_ord = keys[0].get("number", False)
+        field_type = keys[0].get("type", "string")
         is_reverse = keys[0].get("reverse", False)
 
-        if is_num_ord:
+        if field_type == "int":
             projection = lambda x: int(x[field_num])
+        if field_type == "float":
+            projection = lambda x: float(x[field_num])
         else:
             projection = lambda x: x[field_num]
 
