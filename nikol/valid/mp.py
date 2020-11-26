@@ -48,11 +48,6 @@ Errors
 - ErrorMorphemeForm(): check if morpheme form/word form is consistent
 """
 
-from .base import NikolTable
-
-class MPTable(NikolTable):
-    pass
-    
 
 
 
