@@ -74,7 +74,8 @@ import re
 
 from koltk.corpus.nikl.annotated import NiklansonReader 
 
-def valid_ls(sentence):
+def valid_ls(document):
+    for sentence in document.sentence_list:
         if sentence.form == '':
             raise Exception('empty sentence')
         
@@ -94,13 +95,13 @@ def valid_ls(sentence):
             # else: check m.position == prev_m.position + 1
             if prev_m is None:
                 if m.position != 1:
-                    err += 'ErrorMorphemePositon({}!=1);'.format(m.position)
+                    err += 'ErrorMorphemePositon({}->1);'.format(m.position)
             elif m.word_id != prev_m.word_id:
                 if m.position != 1:
-                    err += 'ErrorMorphemePositon({}!=1);'.format(m.position)
+                    err += 'ErrorMorphemePositon({}->1);'.format(m.position)
             else: 
                 if m.position != prev_m.position + 1:
-                    err += 'ErrorMorphemePositon({}!={}+1);'.format(m.position, prev_m.position)
+                    err += 'ErrorMorphemePositon(current={},prev={});'.format(m.position, prev_m.position)
                
             word = sentence.word_list[m.word_id - 1]
             word._morphs.append(m)
@@ -200,6 +201,7 @@ def valid_ls(sentence):
                 
 
 def table(document, spec='min', valid=False):
+    valid_ls(document)
     rows = []
     for sentence in document.sentence_list:
         rows.append(sentence_table(sentence, spec=spec, valid=valid))
@@ -207,7 +209,6 @@ def table(document, spec='min', valid=False):
     return '\n'.join(rows)
  
 def sentence_table(sentence, spec='min', valid=False):
-    valid_ls(sentence)
     if spec == 'min':
         return sentence_table_min(sentence, valid)
     elif spec == 'full':
@@ -219,7 +220,6 @@ def sentence_table_full(sentence, valid):
     rows = []
     for word in sentence.word_list:
         for morph, wsd, err in zip(word._morphs, word._wsd, word._error):
-
             if wsd is None:
                 wsd_str = morph.str
                 wsd_slice_str = ''
@@ -227,8 +227,10 @@ def sentence_table_full(sentence, valid):
                 wsd_str = wsd.str
                 wsd_slice_str = wsd.slice_str
 
-                if wsd.word != morph.form or wsd.pos != morph.label:
-                    err += 'WSDWordPosError({}/{});'.format(morph.form, morph.label)
+                if wsd.word != morph.form:
+                    err += 'ErrorWSDWord(morpheme:{}/{});'.format(morph.form, morph.label)
+                elif wsd.pos != morph.label:
+                    err += 'ErrorWSDPos(morpheme:{}/{});'.format(morph.form, morph.label)
 
             #
             fields = [sentence.fwid,
