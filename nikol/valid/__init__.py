@@ -8,6 +8,7 @@ from . import word
 from . import sentence
 from . import dp
 from . import ne
+from . import cr
 
 
 
