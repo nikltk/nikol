@@ -48,14 +48,7 @@ Errors
 
 """
 
-def decompose(han) : 
-    num = ord(han) - 0xac00
-    lead = num // 588
-    vt = num % 588
-    vowel = vt // 28
-    trail = vt % 28
-
-    return [lead, vowel, trail]
+from . import util
 
 
 def table_sentence_full(sentence, valid=False):
@@ -118,8 +111,7 @@ def table(document, spec='min', valid=False):
                 ne._error.append('ErrorNEId({}->{});'.format(ne.id, i+1))
                 
             if sentence.form[ne.slice] != ne.form:
-                last_char = sentence.form[ne.slice][-1]
-                if decompose(last_char)[0:2] != decompose(ne.form[-1])[0:2]:
+                if not util.form_match(ne.form, sentence.form[ne.slice]):
                     ne._error.append('ErrorNEFormBeginEnd({});'.format(sentence.form[ne.slice]))
 
             # map ne to word
