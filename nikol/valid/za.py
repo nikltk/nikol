@@ -85,7 +85,11 @@ def valid_za(document):
         # Error if
         # - predicate form has only one quotation mark/parenthesis
         # - and word form has both quotation marks/parentheses
-
+        pred_split = re.split('[\'"“”‘’()<>{}\[\]]', pred.form)
+        word_split = re.split('[\'"“”‘’()<>{}\[\]]', word.form)
+        n = len(word_split) - len(pred_split)
+        if len(pred_split) > 1 and n != 0:
+            za._error.append('ErrorZAPredicatForm(QuoteParenMatch);')
 
 
 
