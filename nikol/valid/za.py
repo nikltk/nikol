@@ -20,29 +20,8 @@ ZA
   antecedent : [ {form, type, sentence_id, begin, end} ]
 
 """
-
-import sys
 import re
-
-from koltk.corpus.nikl.annotated import NiklansonReader 
-
-
-class Table:
-    def __init__(self, object):
-        pass
-
-    def valid(self):
-        pass
-    
-        
-    def full(self):
-        return 'full_table'
-
-    def min(self):
-        return 'min_table'
-
-
-
+from . import util
 
 def valid_za(document):
     """
@@ -79,13 +58,18 @@ def valid_za(document):
         #
         word = sentence.wordAt(pred.begin)
         if pred.form != word.form:
-            if word.form.strip('”고') == pred.form: continue
-            if word.form.strip('’고') == pred.form: continue
-            if word.form.strip('"고') == pred.form: continue
+            
+            if re.search('[와과]', word.form) and \
+               word.form[:-1] == pred.form: continue
+            if re.search('[”’\'"]고$', word.form) and \
+               word.form[:-2] == pred.form: continue
             if word.form.strip('.,?!\'"“”‘’…') == pred.form : continue
+            if re.sub('[^가-힣]', '', word.form) == pred.form : continue
+            
             za._error.append('ErrorZAPredicateForm();')
 
 
+        
         if pred.form.endswith('”고') :
             za._error.append('ErrorZAPredicatForm(”고/JKQ);')
 
@@ -101,9 +85,13 @@ def valid_za(document):
         # () <> []
         #
         # Error if
-        # - predicate form has only one quotation mark
-        # - and word form has both quotation marks
-
+        # - predicate form has only one quotation mark/parenthesis
+        # - and word form has both quotation marks/parentheses
+        pred_split = re.split('[\'"“”‘’()<>{}\[\]]', pred.form)
+        word_split = re.split('[\'"“”‘’()<>{}\[\]]', word.form)
+        n = len(word_split) - len(pred_split)
+        if len(pred_split) > 1 and n != 0:
+            za._error.append('ErrorZAPredicatForm(QuoteParenMatch);')
 
 
 
@@ -119,15 +107,7 @@ def valid_za(document):
         if subj.sentence_id != '-1':
             s = document.getSentenceById(subj.sentence_id)
             if s.form[subj.slice] != subj.form:
-                if subj.form == '저' and s.form[subj.slice] == '제': continue
-                if subj.form == '나' and s.form[subj.slice] == '내': continue
-                if subj.form == '저' and s.form[subj.slice] == '전': continue
-                if subj.form == '너' and s.form[subj.slice] == '네': continue
-                if subj.form == '나' and s.form[subj.slice] == '난': continue
-                if subj.form == '나' and s.form[subj.slice] == '날': continue
-                if subj.form == '거' and s.form[subj.slice] == '게': continue
-                if subj.form == '거' and s.form[subj.slice] == '건': continue
-                if subj.form == '우리' and s.form[subj.slice] == '우린': continue
+                if util.form_match(subj.form, s.form[subj.slice]): continue
                 za._error.append('ErrorZAAntecedentFormBeginEnd({})'.format(s.form[subj.slice]))
 
 
