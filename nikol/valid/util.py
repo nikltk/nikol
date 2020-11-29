@@ -20,10 +20,14 @@ def form_match(lemmatized_form, sentence_form, lemma_position_slice=None):
     
     result = False 
 
+    
     if lemma == '저' and word == '제' : result = True
     elif lemma == '나' and word == '내' : result = True
     elif lemma == '너' and word == '네' : result = True
+    elif lemma == '누구' and word == '누가' : result = True
     elif lemma.endswith('거') and word.endswith('게') and lemma[:-1] == word[:-1] :
+        result = True
+    elif lemma.endswith('것') and word.endswith('게') and lemma[:-1] == word[:-1] :
         result = True
     elif decompose(lemma[-1])[0:2] == decompose(word[-1])[0:2]:
         result = True 

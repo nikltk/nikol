@@ -59,6 +59,8 @@ def valid_za(document):
         word = sentence.wordAt(pred.begin)
         if pred.form != word.form:
             
+            if re.search('[와과]', word.form) and \
+               word.form[:-1] == pred.form: continue
             if re.search('[”’\'"]고$', word.form) and \
                word.form[:-2] == pred.form: continue
             if word.form.strip('.,?!\'"“”‘’…') == pred.form : continue
