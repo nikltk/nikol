@@ -91,57 +91,62 @@ def table(document, spec='min', valid=False):
 
         word_idx = 1
         for dp in sent.dp_list:
-
-            err_list = []
+            if not hasattr(dp, '_error'): dp._error = []
 
             word = sent.word_list[dp.word_id - 1]
             if word.form != dp.word_form:
-                err_list.append('ErrorDPWordForm({})'.format(word.form))
+                dp._error.append('ErrorDPWordForm({})'.format(word.form))
  
 
             if not dp.word_id == word_idx: err_list.append('ErrorDPId();')
 
             # error if head is not single
             if not len(root) == len(set(root)) and dp.head==-1:
-                err_list.append('ErrorDPHead();')
+                dp._error.append('ErrorDPHead();')
 
             if dp.word_id in dp_err:
-                err_list.append('ErrorDPDependent();')   
+                dp._error.append('ErrorDPDependent();')   
 
             word_idx += 1
-
-            if dp.head != -1 :
-                head_word_form = sent.dp_list[dp.head - 1].word_form
-                head_label = sent.dp_list[dp.head - 1].label
+            
+            if spec == 'full' :
+                fields = [
+                    sent.fwid,
+                    str(word.id),
+                    dp.word_form,
+                    dp.label,
+                    str(dp.head),
+                    str(dp.dependent)
+                ]
+            elif spec == 'min':
+                fields = [
+                    word.gid,
+                    str(word.id),
+                    dp.word_form,
+                    dp.label,
+                    str(dp.head),
+                ]
             else:
-                head_word_form = ''
-                head_label = ''
-
-
-
-
- 
-               
-
-
-            trigram = ''
-            if len(sent.dp_list) == 1:
-                trigram = dp.word_form
-            elif dp.word_id == 1 :
-                trigram = dp.word_form + ' ' + sent.dp_list[dp.word_id].word_form
-            elif dp.word_id == len(sent.dp_list):
-                trigram = sent.dp_list[dp.word_id - 2].word_form + ' ' + dp.word_form
-            else:
-                trigram = sent.dp_list[dp.word_id - 2].word_form + ' ' + dp.word_form + ' ' + sent.dp_list[dp.word_id].word_form
-
-               
-            fields = [word.gid, str(word.id), dp.word_form,
-                  dp.label, str(dp.head),
-                  #head_word_form, head_label,
-                  #trigram,
-            ]
+                raise Exception('Not supported spec: {}', spec)
+                
             if valid : fields.append(''.join(err_list))
 
             rows.append('\t'.join(fields))
 
     return '\n'.join(rows)
+
+
+def trigram(dp):
+    sent = dp.parent
+    trigram = ''
+    if len(sent.dp_list) == 1:
+        trigram = dp.word_form
+    elif dp.word_id == 1 :
+        trigram = dp.word_form + ' ' + sent.dp_list[dp.word_id].word_form
+    elif dp.word_id == len(sent.dp_list):
+        trigram = sent.dp_list[dp.word_id - 2].word_form + ' ' + dp.word_form
+    else:
+        trigram = sent.dp_list[dp.word_id - 2].word_form + ' ' + dp.word_form + ' ' + sent.dp_list[dp.word_id].word_form
+
+    return trigram
+

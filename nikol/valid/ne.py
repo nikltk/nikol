@@ -80,15 +80,19 @@ def table_sentence_min(sentence, valid=False):
     for word in sentence.word_list:
 
         ne_str = []
+        ne_err = []
         for ne in word._ne:
             if ne == '&': ne_str.append('&')
-            else: ne_str.append(ne.str)
+            else:
+                ne_str.append(ne.str + ne._position)
+                ne_err.append(''.join(ne._error))
 
 
         fields = [word.gid,
                   word.form,
                   ' + '.join(ne_str)
         ]
+        if valid and ne_err != []: fields.append(''.join(ne_err))
 
         rows.append('\t'.join(fields))
 
@@ -111,15 +115,15 @@ def table(document, spec='min', valid=False):
                 ne._error.append('ErrorNEId({}->{});'.format(ne.id, i+1))
                 
             if sentence.form[ne.slice] != ne.form:
-                if not util.form_match(ne.form, sentence.form[ne.slice]):
-                    ne._error.append('ErrorNEFormBeginEnd({});'.format(sentence.form[ne.slice]))
+                #if util.form_match(ne.form, sentence.form[ne.slice]): continue
+                ne._error.append('ErrorNEFormBeginEnd({});'.format(sentence.form[ne.slice]))
 
             # map ne to word
             found = False
             for word in sentence.word_list:
                 if word.begin <= ne.begin < word.end :
                     if word.form.count(ne.form) > 1:
-                        ne._position = '@' + str(ne.begin - word.begin)
+                        ne._position = '@({})'.format(ne.begin - word.begin)
                     else:
                         ne._position = ''
                     word._ne.append(ne)
