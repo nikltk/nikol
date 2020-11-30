@@ -36,8 +36,13 @@ def table(document, spec='min', valid=False):
         if sentence['form'].strip() == '':
             sentence._error.append('ErrorSentenceFormEmpty();')
 
-
-        fields = [sentence.fwid, sentence.form]
+        if spec == 'full':
+            fields = [sentence.fwid, sentence.id, sentence.form]
+        elif spec == 'min':
+            fields = [sentence.fwid, sentence.snum, sentence.form]
+        else:
+            raise Exception('Not supported spec: {}'.format(spec))
+    
         if valid: fields.append(''.join(sentence._error))
 
         rows.append('\t'.join(fields))

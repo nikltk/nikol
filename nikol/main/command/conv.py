@@ -30,9 +30,11 @@ class ConvCommand(SimpleCommand):
         # annotation: sentence, word, morpheme, WSD, NE, DP, SRL, ZA, CR
         annotation_group = self.parser.add_mutually_exclusive_group()
         annotation_group.add_argument('-a', '--annotation', type=str, dest='annotation',
-                                      help='annotation: sentence, word, morpheme, WSD, NE, DP, SR, ZA, CR')
+                                      help='annotation: sentence, word, morpheme, WSD, NE, ZA, DP, SR, CR')
         annotation_group.add_argument('-c', '--corpus-type', type=str, dest='corpus_type',
-                                      help='corpus: sentence, word, MP, LS, NE, DP, SR, ZA, CR')
+                                      help='corpus: sentence, word, mp, ls, ne, za, dp, sr, cr')
+        annotation_group.add_argument('--sentence', action='store_const', const='sentence', dest='corpus_type', help='raw corpus sentence')
+        annotation_group.add_argument('--word', action='store_const', const='word', dest='corpus_type', help='raw corpus word')
         annotation_group.add_argument('--mp', action='store_const', const='mp', dest='corpus_type', help='MP corpus')
         annotation_group.add_argument('--ls', action='store_const', const='ls', dest='corpus_type', help='LS corpus')
         annotation_group.add_argument('--ne', action='store_const', const='ne', dest='corpus_type', help='NE corpus')

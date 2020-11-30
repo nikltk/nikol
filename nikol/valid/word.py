@@ -39,11 +39,22 @@ def table(document, spec='min', valid=False):
             if word.form != sentence.form[word.slice] :
                 word._error.append('ErrorWordBeginEnd({});'.format(sentence.form[word.slice]))
            
-            fields = [sentence.fwid,
-                  word.slice_str,
-                  str(word.id),
-                  word.form,
-            ]
+            if spec == 'full':
+                fields = [
+                    sentence.fwid,
+                    word.slice_str,
+                    str(word.id),
+                    word.form,
+                ]
+            elif spec == 'min':
+                fields = [
+                    word.gid,
+                    word.swid,
+                    word.form
+                ]
+            else:
+                raise Exception('Not supproted spec: {}'.format(spec))
+            
             if valid: fields.append(''.join(word._error))
 
             rows.append('\t'.join(fields))

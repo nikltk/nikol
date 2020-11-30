@@ -141,13 +141,17 @@ def table_full(document, valid=False):
                     ante_sent_fwid = '-1'
 
                 pred_form = pred.form
+                pred_slice_str = pred.slice_str
                 ante_form = ante.form
+                ante_type = ante.type
                 ante_slice_str = ante.slice_str
                 za_errors = ''.join(word._za._error)
             else:
                 ante_sent_fwid = ''
                 pred_form = ''
+                pred_slice_str = ''
                 ante_form = ''
+                ante_type = ''
                 ante_slice_str = ''
                 za_errors = ''
                 
@@ -157,7 +161,9 @@ def table_full(document, valid=False):
                 str(word.id),
                 word.form,
                 pred_form,
+                pred_slice_str,
                 ante_form,
+                ante_type,
                 ante_sent_fwid,
                 ante_slice_str,
                 za_errors
