@@ -98,7 +98,7 @@ def table(document, spec='min', valid=False):
                 dp._error.append('ErrorDPWordForm({})'.format(word.form))
  
 
-            if not dp.word_id == word_idx: err_list.append('ErrorDPId();')
+            if not dp.word_id == word_idx: dp._error.append('ErrorDPId();')
 
             # error if head is not single
             if not len(root) == len(set(root)) and dp.head==-1:
@@ -129,7 +129,7 @@ def table(document, spec='min', valid=False):
             else:
                 raise Exception('Not supported spec: {}', spec)
                 
-            if valid : fields.append(''.join(err_list))
+            if valid : fields.append(''.join(dp._error))
 
             rows.append('\t'.join(fields))
 
