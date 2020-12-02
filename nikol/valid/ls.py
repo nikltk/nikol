@@ -80,13 +80,13 @@ def valid_ls(document):
             raise Exception('empty sentence')
         
         for word in sentence.word_list:
-            word._morphs = []
-            word._wsd = []
-            word._error = []
+            if not hasattr(word, '_morphs') : word._morphs = []
+            if not hasattr(word, '_wsd') : word._wsd = []
+            if not hasattr(word, '_error') : word._error = []
             
         prev_m = None
         for count, m in enumerate(sentence.morpheme_list):
-            err = ''
+            if not hasattr(m, '_error'): m._error = []
             
             # check morpheme position
             #
@@ -95,13 +95,13 @@ def valid_ls(document):
             # else: check m.position == prev_m.position + 1
             if prev_m is None:
                 if m.position != 1:
-                    err += 'ErrorMorphemePositon({}->1);'.format(m.position)
+                    m._error('ErrorMorphemePositon({}->1);'.format(m.position))
             elif m.word_id != prev_m.word_id:
                 if m.position != 1:
-                    err += 'ErrorMorphemePositon({}->1);'.format(m.position)
+                    m._error('ErrorMorphemePositon({}->1);'.format(m.position))
             else: 
                 if m.position != prev_m.position + 1:
-                    err += 'ErrorMorphemePositon(current={},prev={});'.format(m.position, prev_m.position)
+                    m._error('ErrorMorphemePositon(current={},prev={});'.format(m.position, prev_m.position))
                
             word = sentence.word_list[m.word_id - 1]
             word._morphs.append(m)
@@ -110,31 +110,31 @@ def valid_ls(document):
             word._wsd.append(None)
             
             if m.id != count + 1:
-                err += 'ErrorMorphemeId();'
+                m._error('ErrorMorphemeId();')
 
             #if m.label not in tagset: # ['NNG', 'NNP', 'NNB']
             #    err += 'ErrorMorphemeLabel();'
             
-            word._error.append(err)
-            
         for word in sentence.word_list:
             if len(word._morphs) == 1 and word.form != word._morphs[0].form:
-                err += 'ErrorMorphemeForm({});'.format(word._morphs[0].form)
+                if sentence.id.startswith('S') and word.form.endswith('~') and word._morphs[0].label == 'IC':
+                    pass
+                else:
+                    word._error.append('ErrorMorphemeForm({});'.format(word._morphs[0].form))
         
         prev_wsd = None
         for wsd in sentence.wsd_list:
-
-            err = ''
+            if not hasattr(wsd, '_error'): wsd._error = []
             
             if not (0 < wsd.sense_id < 90 or wsd.sense_id in [777, 888, 999]):
-                err += 'ErrorWSDSenseID({});'.format(wsd.sense_id)
+                wsd._error.append('ErrorWSDSenseID({});'.format(wsd.sense_id))
                 
             #if wsd.pos not in tagset:
             #    err += 'WSDPosError({});'.format(wsd.pos)
 
             if prev_wsd is not None:
                 if wsd.begin < prev_wsd.end:
-                    err += 'ErrorWSDBeginEnd(prev={});'.format(prev_wsd.slice_str)
+                    wsd._error.append('ErrorWSDBeginEnd(prev={});'.format(prev_wsd.slice_str))
 
             prev_wsd = wsd
 
@@ -146,12 +146,13 @@ def valid_ls(document):
                     if morpheme.word_id == word.id and morpheme.form == wsd.word:
                         break
                 wsd_position = morpheme.position
-                err += 'ErrorWSDWordId({});'.format(wsd.word_id)
+                wsd._error.append('ErrorWSDWordId({});'.format(wsd.word_id))
+
             else:
                 word = sentence.word_list[wsd.word_id - 1]
             
                 if not (word.begin <= wsd.begin < wsd.end <= word.end):
-                    err += 'ErrorWSDBeginEndOutOfRange();'
+                    wsd._error.append('ErrorWSDBeginEndOutOfRange();')
 
                 # map wsd to morpheme. 
                 #
@@ -179,12 +180,13 @@ def valid_ls(document):
                     except:
                         raise Exception('{} {} {} {} {}'.format(sentence.fwid, word.id, word.form, word._morphs, word._wsd))
                         
+                   
                     if not (wsd.word == m.form
                     and wsd.pos == m.label
                     and m.position == 1
                     and wsd.begin == word.begin):
-                        err += 'ErrorWSDMorphemeMapping({});'.format(wsd_position_candidates)
-            
+                        pass
+                        #wsd._error.append('ErrorWSDMorphemeMapping({});'.format(wsd_position_candidates))
 
             if wsd_position is None:
                 # if something unexpected happens (we don't know yet),
@@ -192,12 +194,28 @@ def valid_ls(document):
                 print('ERROR', word.id, word.form, wsd, wsd_position_candidates)
             elif word._wsd[wsd_position - 1] is None:
                 word._wsd[wsd_position - 1] = wsd
-                word._error[wsd_position - 1] += err
             else:
                 # if something unexpected happens (we don't know yet)
                 # print an extra line
                 print('ERROR', word.id, word.form, word.slice_str, wsd.slice_str, wsd, wsd_position_candidates)
-               
+
+        for word in sentence.word_list:
+            n = len(word._wsd)
+            for i in range(0, n):
+                for j in range(i+1, n):
+                    wsd1 = word._wsd[i]
+                    wsd2 = word._wsd[j]
+                    if wsd1 is None or wsd2 is None :
+                        continue
+                    elif wsd1.end <= wsd2.begin :
+                        # normal
+                        continue
+                    elif wsd2.end <= wsd1.begin:
+                        wsd2._error.append('ErrorWSDBeginEnd({});')
+                    else:
+                        wsd1._error.append('ErrorWSDBeginEnd(overplap);')
+                        wsd2._error.append('ErrorWSDBeginEnd(overplap);')
+                        
                 
 
 def table(document, spec='min', valid=False):
@@ -219,7 +237,7 @@ def sentence_table(sentence, spec='min', valid=False):
 def sentence_table_full(sentence, valid):
     rows = []
     for word in sentence.word_list:
-        for morph, wsd, err in zip(word._morphs, word._wsd, word._error):
+        for morph, wsd in zip(word._morphs, word._wsd):
             if wsd is None:
                 wsd_str = morph.str
                 wsd_slice_str = ''
@@ -228,9 +246,9 @@ def sentence_table_full(sentence, valid):
                 wsd_slice_str = wsd.slice_str
 
                 if wsd.word != morph.form:
-                    err += 'ErrorWSDWord(morpheme:{}/{});'.format(morph.form, morph.label)
+                    wsd._error.append('ErrorWSDWord(morpheme:{}/{});'.format(morph.form, morph.label))
                 elif wsd.pos != morph.label:
-                    err += 'ErrorWSDPos(morpheme:{}/{});'.format(morph.form, morph.label)
+                    wsd._error.append('ErrorWSDPos(morpheme:{}/{});'.format(morph.form, morph.label))
 
             #
             fields = [sentence.fwid,
@@ -239,7 +257,11 @@ def sentence_table_full(sentence, valid):
                     wsd_str,
                     wsd_slice_str
             ]
-            if valid : fields.append(err)
+            if valid :
+                err = ''.join(word._error)
+                err += ''.join(morph._error)
+                err += ''.join(wsd._error) if wsd else ''
+                fields.append(err)
 
             rows.append('\t'.join(fields))
 
