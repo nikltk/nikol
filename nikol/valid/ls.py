@@ -95,13 +95,13 @@ def valid_ls(document):
             # else: check m.position == prev_m.position + 1
             if prev_m is None:
                 if m.position != 1:
-                    m._error('ErrorMorphemePositon({}->1);'.format(m.position))
+                    m._error.append('ErrorMorphemePositon({}->1);'.format(m.position))
             elif m.word_id != prev_m.word_id:
                 if m.position != 1:
-                    m._error('ErrorMorphemePositon({}->1);'.format(m.position))
+                    m._error.append('ErrorMorphemePositon({}->1);'.format(m.position))
             else: 
                 if m.position != prev_m.position + 1:
-                    m._error('ErrorMorphemePositon(current={},prev={});'.format(m.position, prev_m.position))
+                    m._error.append('ErrorMorphemePositon(current={},prev={});'.format(m.position, prev_m.position))
                
             word = sentence.word_list[m.word_id - 1]
             word._morphs.append(m)
