@@ -273,16 +273,17 @@ def sentence_table_min(sentence, valid):
     for word in sentence.word_list:
 
         wsd_str = [] 
-        for morph, wsd, err in zip(word._morphs, word._wsd, word._error):
+        for morph, wsd in zip(word._morphs, word._wsd):
 
             if wsd is None:
                 wsd_str.append(morph.str)
             else:
                 wsd_str.append(wsd.str)
 
-        rows.append('\t'.join([word.gid,
-                word.form, 
-                ' + '.join(wsd_str)
+        rows.append('\t'.join([
+            word.gid,
+            word.form, 
+            ' + '.join(wsd_str)
         ]))
 
     return '\n'.join(rows)
