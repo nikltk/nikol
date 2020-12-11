@@ -2,17 +2,16 @@ import builtins
 from .object import Document
 
 
-def open(filename, format=None):
+def reader(file, format=None):
     """
     :param format: (unified|mp|ls|ne|za|dp|sr|cr).(min|full).(tsv|csv)
     """
     if format == 'unified.min.tsv':
-        return NikolUnifiedMinTableReader(filename, format)
+        return NikolUnifiedMinTableReader(file, format)
+    elif format == 'mp.min.tsv':
+        return NikolMPMinTableReader(file, format)
     else:
         raise NotImplementedError()
-
-
-
 
 class Row:
     def __init__(self, fields = None, **kwargs):
@@ -38,14 +37,14 @@ class NikolUnifiedMinTableReader:
     """
     A file object for unified.min.(tsv|csv)
     """
-    def __init__(self, filename, format='unified.min.tsv'):
+    def __init__(self, file, format='unified.min.tsv'):
         self.format = format
-        self.__filename = filename
+        self.__file = file
         self.__document_list = None
 
     @property
     def filename(self):
-        return self.__filename
+        return self.__file.name
 
     @property
     def document_list(self):
@@ -66,31 +65,31 @@ class NikolUnifiedMinTableReader:
             raise Exception('Not supported format: {}'.format(self.format))
 
     def __process_tsv(self):
-        with builtins.open(self.filename) as file:
-            docid = prev_docid = None
-            docrows = []
-            for line in file:
-                fields = line.strip('\n').split('\t')
-                sid, wid = fields[0].split('_')
-                cid, dn, pn, sn = sid.split('-')
-                docid = '{}-{}'.format(cid, dn)
+        file = self.__file
+        docid = prev_docid = None
+        docrows = []
+        for line in file:
+            fields = line.strip('\n').split('\t')
+            sid, wid = fields[0].split('_')
+            cid, dn, pn, sn = sid.split('-')
+            docid = '{}-{}'.format(cid, dn)
 
-                # for spoken corpus
-                # fill empty fields (dp.label, dp.head, sr.pred, sr.args)
-                if len(fields) == 8 : fields += [None, None, None, None] 
+            # for spoken corpus
+            # fill empty fields (dp.label, dp.head, sr.pred, sr.args)
+            if len(fields) == 8 : fields += [None, None, None, None] 
 
 
-                if docid is None:
-                    pass
-                elif prev_docid is None:
-                    docrows = [Row(fields)]
-                elif docid != prev_docid:
-                    yield Document(docrows)
-                    docrows = [Row(fields)]
-                else:
-                    docrows.append(Row(fields))
+            if docid is None:
+                pass
+            elif prev_docid is None:
+                docrows = [Row(fields)]
+            elif docid != prev_docid:
+                yield Document(docrows)
+                docrows = [Row(fields)]
+            else:
+                docrows.append(Row(fields))
 
-                prev_docid = docid
-                
-            yield Document(docrows)
+            prev_docid = docid
+
+        yield Document(docrows)
 
