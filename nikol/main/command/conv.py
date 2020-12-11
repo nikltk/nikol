@@ -21,7 +21,7 @@ class ConvCommand(SimpleCommand):
     def __init__(self, app = None, name = 'conv'):
         super().__init__(app, name)
         
-        self.parser.add_argument('filenames', type=str, nargs='*', help='input filenames')
+        self.parser.add_argument('filenames', type=str, nargs='*', help='input filenames or a directory')
         self.parser.add_argument('-f', '--from', type=str, dest='input_format', help='input format')
         self.parser.add_argument('-t', '--to', type=str, dest='output_format', help='output format')
         self.parser.add_argument('-o', '--output', type=str, dest='output_filename', help='output filename')
@@ -51,9 +51,24 @@ class ConvCommand(SimpleCommand):
     def run(self, argv):
         args = self.parser.parse_args(argv)
         
+        #
+        # input files
+        #
         if args.filenames == []:
-            sys.exit('Specify filenames. Trye -h form more information.')
-
+            sys.exit('Specify filename(s) or a directory. Trye -h form more information.')
+        elif len(args.filenames) == 1:
+            if os.path.isfile(args.filenames[0]):
+                pass
+            else:
+                path = args.filenames[0]
+                args.filenames = []
+                for dirpath, dirnames, filenames in os.walk(path):
+                    for filename in filenames:
+                        args.filenames.append(os.path.join(dirpath, filename))
+        else:
+            for filename in args.filenames:
+                if not os.path.isfile(filename):
+                    sys.exit('Specify filenames or a directory. Do not specify directories.') 
         #
         # guess input format from filenames[0]
         #
@@ -85,21 +100,21 @@ class ConvCommand(SimpleCommand):
         else:
             pass
 
-
-
         if args.input_format == 'json' and args.output_format == 'tsv':
-            for filename in args.filenames:
-                with open(filename, encoding='utf-8') as file:
-                    reader = NiklansonReader(file)
-                    for document in reader.document_list:
-                        try:
-                            print(nikol.valid.table(document, corpus_type=args.corpus_type, spec=args.spec, valid=args.valid))
-                        except NotImplementedError as e:
-                            sys.exit('NotImpementedError: {}'.format(e))
+            self.json2tsv(args)
         else:
             sys.exit('Not yet support conversion between formats: {} -> {}'.format(args.input_format, args.output_format))
-                    
-            
+
+    def json2tsv(self, args):
+        for filename in args.filenames:
+            with open(filename, encoding='utf-8') as file:
+                reader = NiklansonReader(file)
+                for document in reader.document_list:
+                    try:
+                        print(nikol.valid.table(document, corpus_type=args.corpus_type, spec=args.spec, valid=args.valid))
+                    except NotImplementedError as e:
+                        sys.exit('NotImpementedError: {}'.format(e))
+
 
 def main(argv=None):
     if argv is None:
