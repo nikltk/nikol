@@ -89,12 +89,13 @@ class ConvCommand(SimpleCommand):
 
         if args.input_format == 'json' and args.output_format == 'tsv':
             for filename in args.filenames:
-                reader = NiklansonReader(filename)
-                for document in reader.document_list:
-                    try:
-                        print(nikol.valid.table(document, corpus_type=args.corpus_type, spec=args.spec, valid=args.valid))
-                    except NotImplementedError as e:
-                        sys.exit('NotImpementedError: {}'.format(e))
+                with open(filename, encoding='utf-8') as file:
+                    reader = NiklansonReader(file)
+                    for document in reader.document_list:
+                        try:
+                            print(nikol.valid.table(document, corpus_type=args.corpus_type, spec=args.spec, valid=args.valid))
+                        except NotImplementedError as e:
+                            sys.exit('NotImpementedError: {}'.format(e))
         else:
             sys.exit('Not yet support conversion between formats: {} -> {}'.format(args.input_format, args.output_format))
                     
