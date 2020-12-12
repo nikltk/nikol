@@ -1,5 +1,5 @@
 import builtins
-from .object import Document
+from .object import Document, Row
 
 
 def reader(file, format=None):
@@ -13,26 +13,7 @@ def reader(file, format=None):
     else:
         raise NotImplementedError()
 
-class Row:
-    def __init__(self, fields = None, **kwargs):
-        """ Row represents a line of unified min table data. 
-        Consists of 12 fields: gid, swid, form, mp, ls, ne, za_pred, za_ante, dp_label, dp_head, sr_pred, sr_args.
-        """
-        if type(fields) is list and len(fields) == 12:
-            (self.gid, self.swid, self.form,
-             self.mp, self.ls, self.ne,
-             self.za_pred, self.za_ante,
-             self.dp_label, self.dp_head,
-             self.sr_pred, self.sr_args) = fields
-        else:
-            raise Exception('Need a list of 12 fields. But given : {}'.format(fields));
-
-        for name in kwargs:
-            setattr(self, name, kwargs[name])
-            
-    def __str__(self):
-        return str(self.__dict__)
-
+           
 class NikolUnifiedMinTableReader:
     """
     A file object for unified.min.(tsv|csv)
@@ -75,7 +56,7 @@ class NikolUnifiedMinTableReader:
             docid = '{}-{}'.format(cid, dn)
 
             # for spoken corpus
-            # fill empty fields (dp.label, dp.head, sr.pred, sr.args)
+            # fill empty fields (dp_label, dp_head, sr_pred, sr_args)
             if len(fields) == 8 : fields += [None, None, None, None] 
 
 
