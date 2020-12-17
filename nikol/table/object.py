@@ -2,35 +2,27 @@
 """
 import koltk.corpus.nikl.annotated as nikl
 
-class Row(nikl.Niklanson):
-    def __init__(self, fields = None, **kwargs):
-        """ Row represents a line of unified min table data. 
-        Consists of 12 fields: gid, swid, form, mp, ls, ne, za_pred, za_ante, dp_label, dp_head, sr_pred, sr_args.
-        """
-        if type(fields) is list and len(fields) == 12:
-            (self.gid, self.swid, self.form,
-             self.mp, self.ls, self.ne,
-             self.za_pred, self.za_ante,
-             self.dp_label, self.dp_head,
-             self.sr_pred, self.sr_args) = fields
-        else:
-            raise Exception('Need a list of 12 fields. But given : {}'.format(fields));
-
-        for name in kwargs:
-            setattr(self, name, kwargs[name])
- 
 class Document(nikl.Document):
-    def __init__(self, docrows):
-        """
-        :param docrows: list of Rows in the document
-        """
-        self.__rows = docrows
-        self.sentence = None
+    def __init__(self,
+                 id: str = None,
+                 sentence = [],
+                 parent: nikl.Corpus = None,
+                 metadata: nikl.DocumentMetadata = None):
+        
+        if parent is not None or metadata is not None:
+            super().__init__(parent=parent, metadata=metadata)
+
+        self.id = id
+        self.sentence = sentence
 
     @property
     def _rows(self):
         return self.__rows
-    
+
+    @property
+    def sentence_list(self):
+        return self.sentence
+        
     @property
     def za_list(self):
         if not hasattr(self, 'ZA'): self.process_za()
@@ -41,65 +33,50 @@ class Document(nikl.Document):
         docrows = self._rows
 
         # if za columns do not exist
-        if docrows[0].za_pred is None and docrows[0].za_ante is None:
+        if docrows[0]._za_pred is None and docrows[0]._za_ante is None:
             return None
         
         self.ZA = []
         for row in docrows:
-            if row.za_pred != '' or row.za_ante != '':
-                za = ZA(row, parent=self)
-                self.ZA.append(za)
+            za = row.za
+            if za is not None: self.ZA.append(za)
 
-    @property
-    def sentence_list(self):
-        if self.sentence is None: self.process_sentence()
+            #if row.za_pred != '' or row.za_ante != '':
+            #    za = ZA(row, parent=self)
+            #    self.ZA.append(za)
 
-        return self.sentence
-    
-    def process_sentence(self):
-        docrows = self._rows
-        self.sentence = []
-        prev_sid = None
-        sentrows = []
-        for row in docrows:
-            sid, wid = row.gid.split('_')
-            if prev_sid is None:
-                sentrows = [row]
-            elif sid != prev_sid:
-                self.sentence.append(Sentence(sentrows))
-                sentrows = [row]
-            else:
-                sentrows.append(row)
-
-            prev_sid = sid
-
-        self.sentence.append(Sentence(sentrows))
-
+   
 
 class Sentence(nikl.Sentence):
-    def __init__(self, sentrows):
-        self.__rows = sentrows
-        
-        self.id = sentrows[0].gid.split('_')[0]
-        self.form = ' '.join([row.form for row in sentrows])
-        
-    def process(self):
+
+    def __init__(self, 
+                id: str = None, 
+                form: str = None,
+                sentrows = None,
+                parent: Document = None):
+        super().__init__(parent=parent)
+        self.id = id
+        self.form = form
         self.word = []
+        self.__rows = sentrows
+
+    #def process_word(self):
+    #    sentrows = self._rows
+    #    self.word = []
+    #    for row in sentrows:
+    #        w = Word(row, parent=self)
+    #        row.word = w
+    #        self.word.append(w)
+
+    def process(self, sentrows):
         self.morpheme = []
         self.WSD = []
         self.NE = []
         self.DP = []
         self.SRL = []
 
-        b = e = 0
         morph_id = 0
         for row in sentrows:
-            # word
-            e = b + len(row.form)
-            w = Word(row, begin=b, end=e, parent=self)
-            self.word.append(w)
-            b = e + 1
-
             # morpheme
             for (p, morph_str) in enumerate(row.mp.split(' + ')):
                 morph_id += 1
@@ -144,30 +121,46 @@ class Sentence(nikl.Sentence):
 
     @property
     def word_list(self):
-        if self.word is None:
-            self.word = []
-            for row in self.rows:
-                self.word.append(Word(row))
+        #if not hasattr(self, 'word'):
+        #    self.process_word()
 
         return self.word
 
 class Word(nikl.Word):
-    def __init__(self, row, begin = None, end = None, parent=None):
+    """
+    parent: Sentence
+    id
+    form
+    begin
+    end
+    """
+    def __init__(self, 
+                id,
+                form,
+                begin,
+                end,
+                parent: Sentence = None,
+                ):
         super().__init__(parent=parent)
-        self.__row = row
+        #self.__row = row
         self.__parent = parent
-        self.id = int(row.gid.split('_')[1])
-        self.form = row.form
-        self.begin = begin
-        self.end = end
+        self.id = id #row._word_id
+        self.form = form #row._form
+        self.begin = begin #row.begin
+        self.end = end #row.end
 
-    @property
-    def _row(self):
-        return self.__row
+    @classmethod
+    def from_min(cls, 
+                row,
+                begin,
+                end,
+                parent: Sentence):
 
-    @property
-    def gid(self):
-        return self.__row.gid
+        word = cls(parent=parent, id=row._word_id, form=row._form, begin=begin, end=end)
+        row.word = word
+        word._row = row
+        return word
+
 
 class Morpheme(nikl.Morpheme):
     def __init__(self,
@@ -271,17 +264,24 @@ class SRL(nikl.SRL):
 
 class ZA(nikl.ZA):
     def __init__(self,
-                 row,
-                 parent: Document = None):
-
+                row,    
+                parent: Document = None):
         super().__init__(parent=parent)
-        self.__row = row 
-        
-        self.predicate = nikl.ZAPredicate(parent=self)
-        self.predicate.form = row.za_pred
-        self.predicate.sentence_id = row.gid.split('_')[0]
-        
-        self.antecedent = [] 
+        self.__row = row
+        self.__row.za = self
+
+    @classmethod
+    def from_minspec(cls, row, parent: Document = None):
+        za = cls(row, parent=parent)
+        za.predicate = nikl.ZAPredicate(parent=za)
+        za.predicate.form = row._za_pred
+        za.predicate.sentence_id = row.sentence.id
+        za.antecedent = [] 
+        return za
+
+    @classmethod
+    def from_fullspec(cls, row, parent: Document = None):
+        pass
 
     def _row(self):
         return self.__row

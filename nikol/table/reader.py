@@ -1,22 +1,19 @@
-import builtins
-from .object import Document, Row
-
+from .object import Document, Sentence, Word
+from .table import *
 
 def reader(file, format=None):
     """
     :param format: (unified|mp|ls|ne|za|dp|sr|cr).(min|full).(tsv|csv)
     """
-    if format == 'unified.min.tsv':
-        return NikolUnifiedMinTableReader(file, format)
-    elif format == 'mp.min.tsv':
-        return NikolMPMinTableReader(file, format)
+    if format.endswith('min.tsv'):
+        return NikolMinTableReader(file, format)
     else:
         raise NotImplementedError()
 
            
-class NikolUnifiedMinTableReader:
+class NikolMinTableReader:
     """
-    A file object for unified.min.(tsv|csv)
+    A file reader for (unifiedi|mp|ls|ne|za|dp|sr|cr).min.(tsv|csv)
     """
     def __init__(self, file, format='unified.min.tsv'):
         self.format = format
@@ -48,29 +45,86 @@ class NikolUnifiedMinTableReader:
     def __process_tsv(self):
         file = self.__file
         docid = prev_docid = None
+        sentid = prev_sentid = None
         docrows = []
+        beg = end = 0
         for line in file:
             fields = line.strip('\n').split('\t')
             sid, wid = fields[0].split('_')
-            cid, dn, pn, sn = sid.split('-')
-            docid = '{}-{}'.format(cid, dn)
+            corpusid, dnum, pnum, snum = sid.split('-')
+            
+            if corpusid.startswith('N'):
+                docid = '{}.{}'.format(corpusid, int(dnum))
+                sentid = '{}.{}.{}.{}'.format(corpusid, int(dnum), int(pnum), int(snum))
+            elif corpusid.startswith('S'):
+                docid = corpusid
+                sentid = '{}.{}'.format(corpusid, int(snum))
 
             # for spoken corpus
             # fill empty fields (dp_label, dp_head, sr_pred, sr_args)
             if len(fields) == 8 : fields += [None, None, None, None] 
 
-
             if docid is None:
                 pass
             elif prev_docid is None:
-                docrows = [Row(fields)]
+                # first row of the data file
+                # first document, first sentence
+                doc = Document(id=docid, sentence=[])
+                sent = Sentence(id=sentid, sentrows=[], parent=doc)
+                beg = 0
+                end = beg + len(fields[2])
+                row = UnifiedMinRow(fields, sentence=sent)
+                word = Word.from_min(row, begin=beg, end=end, parent=sent)
+                sent.word.append(word)
+                sent.form = word.form
+                sent._rows.append(row)
+                doc.sentence.append(sent)
             elif docid != prev_docid:
-                yield Document(docrows)
-                docrows = [Row(fields)]
+                # next new document
+                # first row, first sentence
+                yield doc
+                doc = Document(id=docid, sentence=[])
+                sent = Sentence(id=sentid, sentrows=[], parent=doc)
+                beg = 0
+                end = beg + len(fields[2])
+                row = UnifiedMinRow(fields, sentence=sent)
+                word = Word.from_min(row, begin=beg, end=end, parent=sent)
+                sent.word.append(word)
+                sent.form = word.form
+                sent._rows.append(row)
+                doc.sentence.append(sent)
             else:
-                docrows.append(Row(fields))
+                #
+                # inside a document
+                #
+                if sentid == prev_sentid:
+                    #
+                    # inside a sentence
+                    #
+                    beg = end + 1
+                    end = beg + len(fields[2])
+                    row = UnifiedMinRow(fields, sentence=sent)
+                    word = Word.from_min(row, begin=beg, end=end, parent=sent)
+                    sent.word.append(word)
+                    sent.form += ' ' + word.form
+                    sent._rows.append(row)
+                else:
+                    #
+                    # new sentence
+                    # first row
+                    #
+                    sent = Sentence(id=sentid, sentrows=[], parent=doc)
+                    beg = 0
+                    end = beg + len(fields[2])
+                    row = UnifiedMinRow(fields, sentence=sent)
+                    word = Word.from_min(row, begin=beg, end=end, parent=sent)
+                    sent.word.append(word)
+                    sent.form = word.form
+                    sent._rows.append(row)
+                    doc.sentence.append(sent)
 
             prev_docid = docid
+            prev_sentid = sentid
 
-        yield Document(docrows)
+        yield doc
 
