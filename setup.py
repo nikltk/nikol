@@ -4,6 +4,7 @@ with open("README.rst", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
+
     author="",
     author_email="",
     url="https://github.com/nikltk/nikol",
@@ -19,3 +20,4 @@ setuptools.setup(
         
     }
 )
+
