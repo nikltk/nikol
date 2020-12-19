@@ -48,7 +48,6 @@ class UnifiedMinRow(Row):
         else:
             raise Exception('Need a list of 12 fields. But given : {}'.format(fields))
     
-        self.__word = None
         self._word_id = int(self._gid.split('_')[1])
 
     @property
@@ -70,12 +69,4 @@ class UnifiedMinRow(Row):
                 self.__za = ZA.from_minspec(self, parent=self.sentence)
 
         return self.__za
-
-    @property
-    def word(self):
-        return self.__word
-
-    @word.setter
-    def word(self, value):
-        self.__word = value
-
+       

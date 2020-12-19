@@ -60,14 +60,6 @@ class Sentence(nikl.Sentence):
         self.word = []
         self.__rows = sentrows
 
-    #def process_word(self):
-    #    sentrows = self._rows
-    #    self.word = []
-    #    for row in sentrows:
-    #        w = Word(row, parent=self)
-    #        row.word = w
-    #        self.word.append(w)
-
     def process(self, sentrows):
         self.morpheme = []
         self.WSD = []
@@ -77,12 +69,6 @@ class Sentence(nikl.Sentence):
 
         morph_id = 0
         for row in sentrows:
-            # morpheme
-            for (p, morph_str) in enumerate(row.mp.split(' + ')):
-                morph_id += 1
-                m = Morpheme(morph_str, id=morph_id, word=w, position=p+1, parent=self)
-                self.morpheme.append(m)
-
             # WSD
             for wsd in row.ls.split(' + '):
                 self.WSD.append(wsd)
@@ -113,7 +99,6 @@ class Sentence(nikl.Sentence):
             for dp in self.DP:
                 if dp.head != -1:
                     dp.head_node.dependent.append(dp.word_id)
-
                 
     @property
     def _rows(self):
@@ -125,6 +110,26 @@ class Sentence(nikl.Sentence):
         #    self.process_word()
 
         return self.word
+
+    #def process_word(self):
+    #    sentrows = self._rows
+    #    self.word = []
+    #    for row in sentrows:
+    #        w = Word(row, parent=self)
+    #        row.word = w
+    #        self.word.append(w)
+
+
+    @property 
+    def morpheme_list(self):
+        if not hasattr(self, 'morpheme'):
+            self.process_morpheme()
+
+        return self.morpheme
+
+    def process_morpheme(self):
+        self.morpheme = Morpheme.process_sentrows(self._rows)
+
 
 class Word(nikl.Word):
     """
@@ -164,23 +169,57 @@ class Word(nikl.Word):
 
 class Morpheme(nikl.Morpheme):
     def __init__(self,
-                 morph_str : str,
-                 id : int = None,
-                 word : Word = None,
-                 position : int = None,
-                 parent=None):
-        super().__init__(parent=parent)
-        self.id = id
-        slash_idx = morph_str.rfind('/')
-        self.form = morph_str[:slash_idx]
-        self.label = morph_str[(slash_idx+1):]
-        self.__word = word
-        self.word_id = word.id if word is not None else None
-        self.position = position 
+                 parent: Sentence,
+                 id: int,
+                 form: str,
+                 label: str,
+                 word_id: int,
+                 position: int,
+                 row = None):
+        super().__init__(parent=parent, id=id, form=form, label=label, word_id=word_id, position=position)
+        self._row = row
+
+    @classmethod
+    def from_min(cls,
+                 morph_str: str,
+                 id: int = None,
+                 row = None,
+                 position: int = None):
         
-    @property
-    def _word(self):
-        return self.__word
+        slash_idx = morph_str.rfind('/')
+        form = morph_str[:slash_idx]
+        label = morph_str[(slash_idx+1):]
+
+        if row is not None:
+            parent = row.sentence
+            word_id = row.word.id
+        else:
+            parent = None
+            word_id = None
+
+        return cls(parent=parent, id=id, form=form, label=label,
+                   word_id=word_id, position=position, row=row)
+
+    @classmethod
+    def process_sentrows(cls, sentrows):
+        if type(sentrows[0]).__name__ == 'UnifiedMinRow':
+            return Morpheme.process_min_sentrows(sentrows)
+        else:
+            raise NotImplementedError
+
+    @classmethod
+    def process_min_sentrows(cls, sentrows):
+        morphemes = []
+        morph_id = 0
+        for row in sentrows:
+            row.morphemes = []
+            for (p, morph_str) in enumerate(row._mp.split(' + ')):
+                morph_id += 1
+                m = cls.from_min(morph_str, id=morph_id, position=p+1, row=row)
+                row.morphemes.append(m)
+                morphemes.append(m)
+
+        return morphemes
 
 class WSD(nikl.WSD):
     pass
