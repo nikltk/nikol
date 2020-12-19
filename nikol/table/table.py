@@ -2,7 +2,7 @@ import builtins
 from .object import Document, Sentence, ZA
 
 
-class Row(dict):
+class Row:
     def __init__(self, 
                 sentence: Sentence = None):
 
@@ -15,18 +15,9 @@ class Row(dict):
     @property
     def sentence(self):
         return self.__sentence
-    
-    def __getattr__(self, name):
-        try:
-            return self[name]
-        except KeyError:
-            raise AttributeError(name)
 
-    def __setattr__(self, name, value):
-        self[name] = value
-
-    def __delattr__(self, name):
-        del self[name]
+    def __repr__(self):
+        return repr(self.__dict__)
 
 class UnifiedMinRow(Row):
     def __init__(self, 
@@ -45,11 +36,14 @@ class UnifiedMinRow(Row):
              self._za_pred, self._za_ante,
              self._dp_label, self._dp_head,
              self._sr_pred, self._sr_args) = fields
+            
+            self._dp_head = int(self._dp_head)
         else:
             raise Exception('Need a list of 12 fields. But given : {}'.format(fields))
     
-        self.__word = None
         self._word_id = int(self._gid.split('_')[1])
+
+
 
     @property
     def begin(self):
@@ -58,6 +52,30 @@ class UnifiedMinRow(Row):
     @property
     def end(self):
         return self.__end
+
+    @property
+    def dp(self):
+        if not hasattr(self, '__dp'):
+            self.sentence.process_dp()
+
+        return self.__dp
+
+    @dp.setter
+    def dp(self, value):
+        self.__dp = value
+
+
+    @property
+    def morphemes(self):
+        if not hasattr(self, '__morphemes'):
+            self.sentence.process_morpheme()
+
+        return self.__morphemes
+
+    @morphemes.setter
+    def morphemes(self, value):
+        self.__morphemes = value
+
 
     @property
     def za(self):
@@ -70,12 +88,4 @@ class UnifiedMinRow(Row):
                 self.__za = ZA.from_minspec(self, parent=self.sentence)
 
         return self.__za
-
-    @property
-    def word(self):
-        return self.__word
-
-    @word.setter
-    def word(self, value):
-        self.__word = value
-
+       
