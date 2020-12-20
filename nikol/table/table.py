@@ -37,11 +37,12 @@ class UnifiedMinRow(Row):
              self._dp_label, self._dp_head,
              self._sr_pred, self._sr_args) = fields
             
-            self._dp_head = int(self._dp_head)
+            self._dp_head = int(self._dp_head) if self._dp_head is not None else None
         else:
             raise Exception('Need a list of 12 fields. But given : {}'.format(fields))
     
         self._word_id = int(self._gid.split('_')[1])
+        self.__morphemes = None
 
 
 
@@ -54,8 +55,30 @@ class UnifiedMinRow(Row):
         return self.__end
 
     @property
+    def morphemes(self):
+        if not hasattr(self, '_UnifiedMinRow__morphemes'):
+            self.sentence.process_morpheme()
+
+        return self.__morphemes
+
+    @morphemes.setter
+    def morphemes(self, value):
+        self.__morphemes = value
+
+    @property
+    def nes(self):
+        if not hasattr(self, '_UnifiedMinRow__nes'):
+            self.sentence.process_ne()
+
+        return self.__nes
+
+    @nes.setter
+    def nes(self, value):
+        self.__nes = value
+
+    @property
     def dp(self):
-        if not hasattr(self, '__dp'):
+        if not hasattr(self, '_UnifiedMinRow__dp'):
             self.sentence.process_dp()
 
         return self.__dp
@@ -64,17 +87,6 @@ class UnifiedMinRow(Row):
     def dp(self, value):
         self.__dp = value
 
-
-    @property
-    def morphemes(self):
-        if not hasattr(self, '__morphemes'):
-            self.sentence.process_morpheme()
-
-        return self.__morphemes
-
-    @morphemes.setter
-    def morphemes(self, value):
-        self.__morphemes = value
 
 
     @property

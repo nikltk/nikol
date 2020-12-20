@@ -61,10 +61,8 @@ class Sentence(nikl.Sentence):
         self.__rows = sentrows
 
     def process(self, sentrows):
-        self.morpheme = []
         self.WSD = []
         self.NE = []
-        self.DP = []
         self.SRL = []
 
         morph_id = 0
@@ -72,18 +70,6 @@ class Sentence(nikl.Sentence):
             # WSD
             for wsd in row.ls.split(' + '):
                 self.WSD.append(wsd)
-
-            # NE
-            if row.ne != '' and row.ne != '&':
-                for ne in row.ne.split(' + '):
-                    self.NE.append(ne)
-
-            # DP: 
-            if row.dp_label is None and row.dp_head is None:
-                pass
-            else:
-                d = DP(word=w, head=row.dp_head, label=row.dp_label, dependent=[], parent=self)
-                self.DP.append(d)
 
         for row in sentrows:
             # SRL:
@@ -94,12 +80,7 @@ class Sentence(nikl.Sentence):
                 self.SRL.append(s)
                 
                 
-        # DP: add dependent        
-        if self.DP != []:
-            for dp in self.DP:
-                if dp.head != -1:
-                    dp.head_node.dependent.append(dp.word_id)
-                
+               
     @property
     def _rows(self):
         return self.__rows
@@ -129,6 +110,17 @@ class Sentence(nikl.Sentence):
 
     def process_morpheme(self):
         self.morpheme = Morpheme.process_sentrows(self._rows)
+
+    @property 
+    def ne_list(self):
+        if not hasattr(self, 'NE'):
+            self.process_ne()
+
+        return self.NE
+
+    def process_ne(self):
+        self.NE = NE.process_sentrows(self._rows)
+
 
     @property
     def dp_list(self):
@@ -236,7 +228,90 @@ class WSD(nikl.WSD):
     pass
 
 class NE(nikl.NE):
-    pass
+    def __init__(self,
+                 parent: Sentence = None,
+                 id: int = None,
+                 form: str = None,
+                 label: str = None,
+                 begin: int = None,
+                 end: int = None,
+                 row = None):
+        super().__init__(parent=parent, id=id, form=form, label=label, begin=begin, end=end)
+        self._row = row
+
+    @classmethod
+    def from_min(cls,
+                 ne_str: str,
+                 id: int = None,
+                 row = None):
+        
+        slash_idx = ne_str.rfind('/')
+        form = ne_str[:slash_idx]
+
+        #
+        # beg: begin character index within a word
+        #
+        # TODO: compute begin
+        #
+        label_beg = ne_str[(slash_idx+1):].split('@')
+        if len(label_beg) == 1:
+            label = label_beg[0]
+            w1 = form.split()[0]
+            beg = row.word.form.find(w1)
+                
+        elif len(label_beg) == 2:
+            label = label_beg[0]
+            beg = int(label_beg[1].strip('()'))
+        else:
+            raise Exception('Illegal ne_str: {}'.format(ne_str))
+                
+        if beg == -1:
+            pass
+            #raise Exception(ne_str, form, label, beg, row)
+
+
+
+
+
+        if row is not None:
+            parent = row.sentence
+            begin = row.word.begin + beg
+            end = begin + len(form) 
+        else:
+            parent = None
+            begin = None
+            end = None
+
+        return cls(parent=parent, id=id, form=form, label=label, begin=begin, end=end, row=row) 
+
+    @classmethod
+    def process_sentrows(cls, sentrows):
+        if type(sentrows[0]).__name__ == 'UnifiedMinRow':
+            return NE.process_min_sentrows(sentrows)
+        else:
+            raise NotImplementedError
+
+    @classmethod
+    def process_min_sentrows(cls, sentrows):
+        nes = []
+        ne_id = 0
+        for row in sentrows:
+            row_nes = []
+            if row._ne == '' or row._ne == '&':
+                row.nes = None
+                continue
+            for ne_str in row._ne.split(' + '):
+                if ne_str == '&' : continue
+                ne_id += 1
+                n = cls.from_min(ne_str, id=ne_id, row=row)
+                row_nes.append(n)
+
+            row.nes = row_nes
+            nes += row_nes
+
+        return nes
+ 
+        
 
 
 class DP(nikl.DP):
