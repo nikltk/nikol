@@ -17,7 +17,9 @@ class Document(nikl.Document):
 
     @property
     def _rows(self):
-        return self.__rows
+        for sent in self.sentence:
+            for row in sent._rows:
+                yield row
 
     @property
     def sentence_list(self):
@@ -25,27 +27,18 @@ class Document(nikl.Document):
         
     @property
     def za_list(self):
-        if not hasattr(self, 'ZA'): self.process_za()
+        if not hasattr(self, 'ZA'):
+            self.process_za()
 
         return self.ZA
         
     def process_za(self):
-        docrows = self._rows
-
-        # if za columns do not exist
-        if docrows[0]._za_pred is None and docrows[0]._za_ante is None:
-            return None
-        
-        self.ZA = []
-        for row in docrows:
-            za = row.za
-            if za is not None: self.ZA.append(za)
-
-            #if row.za_pred != '' or row.za_ante != '':
-            #    za = ZA(row, parent=self)
-            #    self.ZA.append(za)
-
-   
+        row1 = self.sentence_list[0]._rows[0]
+        if row1._za_pred is None and row1._za_ante is None:
+            self.ZA = []
+        else:
+            self.ZA = ZA.process_docrows(self) 
+  
 
 class Sentence(nikl.Sentence):
 
@@ -108,6 +101,17 @@ class Sentence(nikl.Sentence):
 
     def process_morpheme(self):
         self.morpheme = Morpheme.process_sentrows(self._rows)
+
+    @property 
+    def wsd_list(self):
+        if not hasattr(self, 'WSD'):
+            self.process_wsd()
+
+        return self.WSD
+
+    def process_wsd(self):
+        self.WSD = WSD.process_sentrows(self._rows)
+
 
     @property 
     def ne_list(self):
@@ -468,25 +472,101 @@ class SRL(nikl.SRL):
 
 class ZA(nikl.ZA):
     def __init__(self,
-                row,    
-                parent: Document = None):
+                 parent: Document = None,
+                 predicate = None,
+                 antecedent_list = None,
+                 row = None):
         super().__init__(parent=parent)
-        self.__row = row
-        self.__row.za = self
+        self.predicate = predicate
+        self.antecedent = antecedent_list
+        self._row = row
 
     @classmethod
-    def from_minspec(cls, row, parent: Document = None):
-        za = cls(row, parent=parent)
-        za.predicate = nikl.ZAPredicate(parent=za)
-        za.predicate.form = row._za_pred
-        za.predicate.sentence_id = row.sentence.id
-        za.antecedent = [] 
+    def from_min(cls, row, parent: Document = None):
+        pred_str = row._za_pred
+        ante_str = row._za_ante
+        doc = row.document
+
+        za = cls(parent=parent, row=row)
+
+
+        #
+        # predicate
+        #
+        # TODO: begin, end
+        pred_word = row.word
+        beg = pred_word.form.find(pred_str)
+        if beg == -1:
+            pred_begin = pred_word.begin
+            pred_end = pred_word.end
+        else:
+            pred_begin = pred_word.begin + beg
+            pred_end = pred_begin + len(pred_str)
+        
+        za.predicate = nikl.ZAPredicate(parent=za, form=pred_str, sentence_id=row.sentence.id,
+                                        begin=pred_begin, end=pred_end)
+
+        #
+        # antecendent
+        #
+        # TODO: begin, end
+        ante_form, ante_swid = ante_str.split('__@')
+        if ante_swid == '-1':
+            ante_sent_id = '-1'
+            ante_begin = -1
+            ante_end = -1
+        else:
+            ante_sid, ante_wid = ante_swid.split('_')
+            ante_sid = int(ante_sid.lstrip('s'))
+            ante_wid = int(ante_wid)
+
+            ante_sent = doc.sentence_list[ante_sid - 1]
+            ante_sent_id = ante_sent.id
+
+            ante_word = ante_sent.word_list[ante_wid - 1]
+            beg = ante_word.form.find(ante_form)
+
+            if beg == -1 :
+                #print('ERROR', ante_form, ante_word, ante_word._row.morphemes)
+                ante_begin = ante_word.begin
+                ante_end = ante_word.end
+            else:    
+                ante_begin = ante_word.begin + beg
+                ante_end = ante_begin + len(ante_form)
+
+
+        za.antecedent = [nikl.ZAAntecedent(parent=za, form=ante_form, type='subject', sentence_id=ante_sent_id,
+                                           begin=ante_begin, end=ante_end)] 
+
         return za
 
+ 
     @classmethod
-    def from_fullspec(cls, row, parent: Document = None):
+    def from_full(cls, row, parent: Document = None):
         pass
 
-    def _row(self):
-        return self.__row
-    
+    @classmethod
+    def process_docrows(cls, document):
+        if type(document.sentence_list[0]._rows[0]).__name__ == 'UnifiedMinRow':
+            return ZA.process_min_docrows(document)
+        else:
+            raise NotImplementedError
+
+    @classmethod
+    def process_min_docrows(cls, document):
+
+        # if za columns do not exist
+        #if docrows[0]._za_pred is None and docrows[0]._za_ante is None:
+        #    return None
+        
+        zas = []
+        for row in document._rows:
+            if row._za_pred != '' or row._za_ante != '':
+                z = ZA.from_min(row, parent=document)
+                row.za = z
+                zas.append(z)
+
+        return zas
+ 
+
+ 

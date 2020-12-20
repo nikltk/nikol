@@ -98,16 +98,15 @@ class UnifiedMinRow(Row):
     def srl(self, value):
         self.__srl = value
 
-
     @property
     def za(self):
-        if not hasattr(self, '__za'):
-            if self._za_pred is None and self._za_ante is None:
-                self.__za = None
-            elif self._za_pred == '' and self._za_ante == '':
-                self.__za = None
-            else:
-                self.__za = ZA.from_minspec(self, parent=self.sentence)
+        if not hasattr(self, '_UnifiedMinRow__za'):
+            self.sentence.process_za()
 
         return self.__za
-       
+
+    @za.setter
+    def za(self, value):
+        self.__za = value
+
+      
