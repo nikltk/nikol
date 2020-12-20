@@ -87,6 +87,16 @@ class UnifiedMinRow(Row):
     def dp(self, value):
         self.__dp = value
 
+    @property
+    def srl(self):
+        if not hasattr(self, '_UnifiedMinRow__srl'):
+            self.sentence.process_srl()
+
+        return self.__srl
+
+    @srl.setter
+    def srl(self, value):
+        self.__srl = value
 
 
     @property

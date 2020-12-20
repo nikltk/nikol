@@ -62,8 +62,6 @@ class Sentence(nikl.Sentence):
 
     def process(self, sentrows):
         self.WSD = []
-        self.NE = []
-        self.SRL = []
 
         morph_id = 0
         for row in sentrows:
@@ -121,7 +119,6 @@ class Sentence(nikl.Sentence):
     def process_ne(self):
         self.NE = NE.process_sentrows(self._rows)
 
-
     @property
     def dp_list(self):
         if not hasattr(self, 'DP'):
@@ -131,6 +128,17 @@ class Sentence(nikl.Sentence):
 
     def process_dp(self):
         self.DP = DP.process_sentrows(self._rows)
+
+    @property
+    def srl_list(self):
+        if not hasattr(self, 'SRL'):
+            self.process_srl()
+
+        return self.SRL
+
+    def process_srl(self):
+        self.SRL = SRL.process_sentrows(self._rows)
+
 
 class Word(nikl.Word):
     """
@@ -367,34 +375,45 @@ class DP(nikl.DP):
 
 class SRL(nikl.SRL):
     def __init__(self,
-                pred_str,
-                args_str,
-                 word,
-                parent: Sentence = None):
+                 parent: Sentence = None,
+                 predicate: nikl.SRLPredicate = None,
+                 argument_list = None,
+                 row = None):
         
         super().__init__(parent=parent)
-        self.__word = word
+        self.predicate = predicate
+        self.argument = argument_list
+        self._row = row
+
+    @classmethod
+    def from_min(cls, row):
+        srl = cls(parent=row.sentence, row=row)
+
+        pred_str = row._sr_pred
+        args_str = row._sr_args
+        word = row.word
+        parent = row.sentence
 
         #
         # predicate
         #
-        self.predicate = nikl.SRLPredicate(parent=self)
+        predicate = nikl.SRLPredicate(parent=srl)
         pred_lemma, pred_sense_id = pred_str.split('__')
-        self.predicate.lemma = pred_lemma
+        predicate.lemma = pred_lemma
         try:
-            self.predicate.sense_id = int(pred_sense_id)
+            predicate.sense_id = int(pred_sense_id)
         except:
-            self.predicate.sense_id = pred_sense_id
+            predicate.sense_id = pred_sense_id
 
         # form processing...
-        self.predicate.form = word.form
-        self.predicate.begin = word.begin
-        self.predicate.end = word.end
+        predicate.form = word.form
+        predicate.begin = word.begin
+        predicate.end = word.end
 
         #
         # arguments
         #
-        self.argument = []
+        arguments = []
         for arg_str in args_str.split():
             
             slash = arg_str.rfind('/')
@@ -402,17 +421,45 @@ class SRL(nikl.SRL):
             label_wordrange_str = arg_str[(slash+1):]
             label, wordrange_str = label_wordrange_str.split('__')
             wordids = wordrange_str.lstrip('@').split('-')
-            w1 = self.parent.word_list[int(wordids[0]) - 1]
-            w2 = self.parent.word_list[int(wordids[1]) - 1] if len(wordids) == 2 else w1
+            w1 = parent.word_list[int(wordids[0]) - 1]
+            w2 = parent.word_list[int(wordids[1]) - 1] if len(wordids) == 2 else w1
             
-            arg = nikl.SRLArgument(parent=self)
+            arg = nikl.SRLArgument(parent=srl)
             arg.begin = w1.begin
             arg.end = w2.begin + len(arg_form)
-            arg.form = self.parent.form[arg.begin:arg.end]
+            arg.form = parent.form[arg.begin:arg.end]
             arg.label = label
 
-            self.argument.append(arg)
+            arguments.append(arg)
 
+        srl.predicate = predicate
+        srl.argument = arguments
+
+        return srl 
+
+    @classmethod
+    def process_sentrows(cls, sentrows):
+        if type(sentrows[0]).__name__ == 'UnifiedMinRow':
+            return SRL.process_min_sentrows(sentrows)
+        else:
+            raise NotImplementedError
+
+    @classmethod
+    def process_min_sentrows(cls, sentrows):
+        srls = []
+        for row in sentrows:
+            if row._sr_pred is None and row._sr_args is None:
+                row.srl = None
+                continue
+            elif row._sr_pred == '' and row._sr_args == '':
+                row.srl = None
+                continue
+            srl = SRL.from_min(row)
+            row.srl = srl
+            srls.append(srl)
+
+        return srls
+            
             
     @property
     def _word(self):
