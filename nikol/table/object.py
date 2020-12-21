@@ -103,15 +103,24 @@ class Sentence(nikl.Sentence):
         self.morpheme = Morpheme.process_sentrows(self._rows)
 
     @property 
+    def ls_list(self):
+        if not hasattr(self, '_ls'):
+            self.process_ls()
+
+        return self._ls
+
+    def process_ls(self):
+        self._ls = WSD.process_sentrows(self._rows, morpheme_as_wsd=True)
+
+    @property
     def wsd_list(self):
         if not hasattr(self, 'WSD'):
-            self.process_wsd()
+            self.process_wsd_and_morpheme()
 
         return self.WSD
-
-    def process_wsd(self):
-        self.WSD = WSD.process_sentrows(self._rows)
-
+            
+    def process_wsd_and_morpheme(self):
+        self.morpheme, self.WSD = WSD.process_sentrows(self._rows)
 
     @property 
     def ne_list(self):
@@ -237,7 +246,110 @@ class Morpheme(nikl.Morpheme):
         return morphemes
 
 class WSD(nikl.WSD):
-    pass
+    def __init__(self,
+                 parent: Sentence = None,
+                 word: str = None,
+                 sense_id: int = None,
+                 pos : str = None,
+                 begin: int = None,
+                 end: int = None,
+                 row = None):
+ 
+        super().__init__(parent=parent, word=word, sense_id=sense_id, pos=pos, begin=begin, end=end)
+        self._row = row
+
+    @classmethod
+    def from_min(cls,
+                 ls_str: str,
+                 begin: int = None,
+                 end: int = None,
+                 row = None):
+        
+        slash_idx = ls_str.rfind('/')
+        pos = ls_str[(slash_idx+1):]
+        form_sense = ls_str[:slash_idx].split('__')
+
+        if len(form_sense) == 1:
+            form = form_sense[0]
+            sense_id = None
+        elif len(form_sense) == 2:
+            form = form_sense[0]
+            sense_id = int(form_sense[1])
+        else:
+            raise Exception('Illegal ls_str: {}'.format(ls_str))
+
+        if row is not None:
+            parent = row.sentence
+        else:
+            parent = None
+
+        return cls(parent=parent, word=form, sense_id=sense_id, pos=pos,
+                   begin=begin, end=end, row=row)
+
+    @classmethod
+    def process_sentrows(cls, sentrows, morpheme_as_wsd=False):
+        if type(sentrows[0]).__name__ == 'UnifiedMinRow':
+            if morpheme_as_wsd:
+                return WSD.process_min_sentrows_ls(sentrows)
+            else:
+                return WSD.process_min_sentrows_wsd_and_morpheme(sentrows)
+        else:
+            raise NotImplementedError
+
+    @classmethod
+    def process_min_sentrows_ls(cls, sentrows):
+        lss = []
+        for row in sentrows:
+            row_lss = []
+            beg = 0
+            for (p, ls_str) in enumerate(row._ls.split(' + ')):
+                l = cls.from_min(ls_str, row=row)
+                begin = row.word.begin + beg
+                end = begin + len(l.word)
+                l.begin = begin
+                l.end = end
+                row_lss.append(l)
+                beg += len(l.word)
+
+            row.lss = row_lss
+            lss += row_lss
+
+        return lss
+
+    @classmethod
+    def process_min_sentrows_wsd_and_morpheme(cls, sentrows):
+        wsds = []
+        morphemes = []
+        morph_id = 0
+        for row in sentrows:
+            beg = 0
+            for (p, ls_str) in enumerate(row._ls.split(' + ')):
+                morph_id += 1
+                if ls_str.find('__') != -1:
+                    #
+                    # TODO: begin, end
+                    #
+                    l = cls.from_min(ls_str, row=row)
+                    l.begin = row.word.begin + beg
+                    l.end = l.begin + len(l.word)
+                    l.word_id = row.word.id
+                    wsds.append(l)
+
+                    morph_str = '{}/{}'.format(l.word, l.pos)
+                    m = Morpheme.from_min(morph_str, id=morph_id, position=p+1, row=row)
+                    morphemes.append(m)
+
+                    beg += len(l.word)
+                else:    
+                    m = Morpheme.from_min(ls_str, id=morph_id, position=p+1, row=row)
+                    morphemes.append(m)
+
+                    beg += len(m.form)
+
+                
+
+        return morphemes, wsds 
+
 
 class NE(nikl.NE):
     def __init__(self,

@@ -66,6 +66,18 @@ class UnifiedMinRow(Row):
         self.__morphemes = value
 
     @property
+    def lss(self):
+        if not hasattr(self, '_UnifiedMinRow__lss'):
+            self.sentence.process_ls()
+
+        return self.__lss
+
+    @lss.setter
+    def lss(self, value):
+        self.__lss = value
+
+
+    @property
     def nes(self):
         if not hasattr(self, '_UnifiedMinRow__nes'):
             self.sentence.process_ne()
