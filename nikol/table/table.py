@@ -113,7 +113,7 @@ class UnifiedMinRow(Row):
     @property
     def za(self):
         if not hasattr(self, '_UnifiedMinRow__za'):
-            self.sentence.process_za()
+            self.document.process_za()
 
         return self.__za
 

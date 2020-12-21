@@ -48,6 +48,7 @@ class NikolMinTableReader:
         sentid = prev_sentid = None
         docrows = []
         beg = end = 0
+        sentnum = 1
         for line in file:
             fields = line.strip('\n').split('\t')
             sid, wid = fields[0].split('_')
@@ -69,8 +70,9 @@ class NikolMinTableReader:
             elif prev_docid is None:
                 # first row of the data file
                 # first document, first sentence
+                sentnum = 1
                 doc = Document(id=docid, sentence=[])
-                sent = Sentence(id=sentid, sentrows=[], parent=doc)
+                sent = Sentence(parent=doc, num=sentnum, id=sentid, sentrows=[])
                 beg = 0
                 end = beg + len(fields[2])
                 row = UnifiedMinRow(fields, sentence=sent)
@@ -84,7 +86,8 @@ class NikolMinTableReader:
                 # first row, first sentence
                 yield doc
                 doc = Document(id=docid, sentence=[])
-                sent = Sentence(id=sentid, sentrows=[], parent=doc)
+                sentnum = 1
+                sent = Sentence(parent=doc, num=sentnum, id=sentid, sentrows=[])
                 beg = 0
                 end = beg + len(fields[2])
                 row = UnifiedMinRow(fields, sentence=sent)
@@ -113,7 +116,8 @@ class NikolMinTableReader:
                     # new sentence
                     # first row
                     #
-                    sent = Sentence(id=sentid, sentrows=[], parent=doc)
+                    sentnum += 1
+                    sent = Sentence(parent=doc, num=sentnum, id=sentid, sentrows=[])
                     beg = 0
                     end = beg + len(fields[2])
                     row = UnifiedMinRow(fields, sentence=sent)

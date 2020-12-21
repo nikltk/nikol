@@ -43,11 +43,12 @@ class Document(nikl.Document):
 class Sentence(nikl.Sentence):
 
     def __init__(self, 
+                parent: Document = None,
+                num: int = None,
                 id: str = None, 
                 form: str = None,
-                sentrows = None,
-                parent: Document = None):
-        super().__init__(parent=parent)
+                sentrows = None):
+        super().__init__(parent=parent, num=num)
         self.id = id
         self.form = form
         self.word = []
@@ -366,7 +367,7 @@ class NE(nikl.NE):
         
         slash_idx = ne_str.rfind('/')
         if slash_idx == -1:
-            raise ValueError("invalid literal for ne_str: '{}\'".format(ne_str))
+            raise ValueError("invalid literal for ne_str: '{}'".format(ne_str))
 
         form = ne_str[:slash_idx]
         label_beg = ne_str[(slash_idx+1):].split('@')
@@ -625,16 +626,76 @@ class ZA(nikl.ZA):
         #
         # antecendent
         #
-        # TODO: begin, end
-        ante_form, ante_swid = ante_str.split('__@')
-        if ante_swid == '-1':
+        za.antecedent = [ ZAAntecedent.from_min(row=row, parent=za) ]
+
+        return za
+
+    @classmethod
+    def parse_za_ante_str(cls, ante_str):
+        return ZAAntecedent.parse_za_ante_str(ante_str)
+
+    @classmethod
+    def from_full(cls, row, parent: Document = None):
+        pass
+
+    @classmethod
+    def process_docrows(cls, document):
+        if type(document.sentence_list[0]._rows[0]).__name__ == 'UnifiedMinRow':
+            return ZA.process_min_docrows(document)
+        else:
+            raise NotImplementedError
+
+    @classmethod
+    def process_min_docrows(cls, document):
+        # if za columns do not exist
+        #if docrows[0]._za_pred is None and docrows[0]._za_ante is None:
+        #    return None
+        
+        zas = []
+        for row in document._rows:
+            if row._za_pred != '' or row._za_ante != '':
+                z = ZA.from_min(row, parent=document)
+                row.za = z
+                zas.append(z)
+            else:
+                row.za = None
+
+        return zas
+ 
+
+class ZAAntecedent(nikl.ZAAntecedent): 
+    def __init__(self,
+                 parent: ZA = None,
+                 form: str = None,
+                 type: str = None,
+                 sentence_id: int = None,
+                 begin: int = None,
+                 end: int = None,
+                 **kwargs):
+        super().__init__(parent)
+        self.type = type
+        self.form = form
+        self.sentence_id = sentence_id
+        self.begin = begin
+        self.end = end
+        self.update(kwargs)
+ 
+    @classmethod
+    def from_min(cls, row, parent: ZA):
+        ante_str = row._za_ante
+        doc = row.document
+
+        parsed = cls.parse_za_ante_str(ante_str)
+        ante_form = parsed['form']
+        snum = parsed['snum']
+        ante_wid = parsed['word_id']
+        
+        if snum == '-1':
             ante_sent_id = '-1'
             ante_begin = -1
             ante_end = -1
         else:
-            ante_sid, ante_wid = ante_swid.split('_')
-            ante_sid = int(ante_sid.lstrip('s'))
-            ante_wid = int(ante_wid)
+            ante_sid = int(snum.lstrip('s'))
 
             ante_sent = doc.sentence_list[ante_sid - 1]
             ante_sent_id = ante_sent.id
@@ -650,39 +711,36 @@ class ZA(nikl.ZA):
                 ante_begin = ante_word.begin + beg
                 ante_end = ante_begin + len(ante_form)
 
+        return cls(parent=parent, form=ante_form, type='subject', sentence_id=ante_sent_id,
+                   begin=ante_begin, end=ante_end) 
 
-        za.antecedent = [nikl.ZAAntecedent(parent=za, form=ante_form, type='subject', sentence_id=ante_sent_id,
-                                           begin=ante_begin, end=ante_end)] 
+    
+    @classmethod
+    def parse_za_ante_str(cls, za_ante_str):
+        """
+        TODO: begin, end
+        :param za_ante_str: example) HHH__@s3_9
+        :type za_ante_str: str
 
-        return za
+        :return: example) {'form': 'HHH', 'snum': 's3', 'word_id': 9} if document is None
+                          {'form': 'HHH', 'sentence_id': 'NWRW1800000021.1.2.1', 'begin': 11 , 'end': 13 } if document is given
+        :rtype: dict
+        """
+        try:
+            ante_form, ante_swid = za_ante_str.split('__@')
+
+            if ante_swid == '-1':
+                ante_sid = '-1'
+                ante_wid = None
+            else:
+                ante_sid, ante_wid = ante_swid.split('_')
+                ante_wid = int(ante_wid)
+
+        except:
+            raise ValueError("invalid literal for za_ante_str: '{}'".format(za_ante_str))
+ 
+        return {'form' : ante_form, 'snum' : ante_sid, 'word_id' : ante_wid}
 
  
-    @classmethod
-    def from_full(cls, row, parent: Document = None):
-        pass
 
-    @classmethod
-    def process_docrows(cls, document):
-        if type(document.sentence_list[0]._rows[0]).__name__ == 'UnifiedMinRow':
-            return ZA.process_min_docrows(document)
-        else:
-            raise NotImplementedError
 
-    @classmethod
-    def process_min_docrows(cls, document):
-
-        # if za columns do not exist
-        #if docrows[0]._za_pred is None and docrows[0]._za_ante is None:
-        #    return None
-        
-        zas = []
-        for row in document._rows:
-            if row._za_pred != '' or row._za_ante != '':
-                z = ZA.from_min(row, parent=document)
-                row.za = z
-                zas.append(z)
-
-        return zas
- 
-
- 
