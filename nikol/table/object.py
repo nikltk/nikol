@@ -346,8 +346,6 @@ class WSD(nikl.WSD):
 
                     beg += len(m.form)
 
-                
-
         return morphemes, wsds 
 
 
@@ -364,47 +362,53 @@ class NE(nikl.NE):
         self._row = row
 
     @classmethod
-    def from_min(cls,
-                 ne_str: str,
-                 id: int = None,
-                 row = None):
+    def parse_ne_str(cls, ne_str):
         
         slash_idx = ne_str.rfind('/')
-        form = ne_str[:slash_idx]
+        if slash_idx == -1:
+            raise ValueError("invalid literal for ne_str: '{}\'".format(ne_str))
 
-        #
-        # beg: begin character index within a word
-        #
-        # TODO: compute begin
-        #
+        form = ne_str[:slash_idx]
         label_beg = ne_str[(slash_idx+1):].split('@')
         if len(label_beg) == 1:
             label = label_beg[0]
-            w1 = form.split()[0]
-            beg = row.word.form.find(w1)
-                
+            beg = None
         elif len(label_beg) == 2:
             label = label_beg[0]
             beg = int(label_beg[1].strip('()'))
         else:
-            raise Exception('Illegal ne_str: {}'.format(ne_str))
+            raise ValueError('invalid liter for ne_str: \'{}\''.format(ne_str))
+
+        return {'form' : form, 'label' : label, 'begin_within_word' : beg }
+        
+    @classmethod
+    def from_min(cls,
+                 ne_str: str,
+                 id: int,
+                 row):
+        
+        parsed = NE.parse_ne_str(ne_str)
+        form = parsed['form']
+        label = parsed['label']
+        beg = parsed['begin_within_word']
+
+        slash_idx = ne_str.rfind('/')
+        form = ne_str[:slash_idx]
+
+        #
+        # TODO: compute begin and end
+        #
+        if beg is None:
+            w1 = form.split()[0]
+            beg = row.word.form.find(w1)
                 
         if beg == -1:
-            pass
+            beg = 0
             #raise Exception(ne_str, form, label, beg, row)
 
-
-
-
-
-        if row is not None:
-            parent = row.sentence
-            begin = row.word.begin + beg
-            end = begin + len(form) 
-        else:
-            parent = None
-            begin = None
-            end = None
+        parent = row.sentence
+        begin = row.word.begin + beg
+        end = begin + len(form) 
 
         return cls(parent=parent, id=id, form=form, label=label, begin=begin, end=end, row=row) 
 
