@@ -364,7 +364,14 @@ class NE(nikl.NE):
 
     @classmethod
     def parse_ne_str(cls, ne_str):
+        """
+        :param ne_str: eg) 'HHH/PS@(0)'
+        :type ne_str: str
         
+        :return: eg) {'form' : 'HHH', 'label' : 'PS', 'begin_within_word' : 0 }
+        :rtype: dict
+        """
+ 
         slash_idx = ne_str.rfind('/')
         if slash_idx == -1:
             raise ValueError("invalid literal for ne_str: '{}'".format(ne_str))
@@ -508,55 +515,22 @@ class SRL(nikl.SRL):
 
     @classmethod
     def from_min(cls, row):
+        args_str = row._sr_args
+
         srl = cls(parent=row.sentence, row=row)
 
-        pred_str = row._sr_pred
-        args_str = row._sr_args
-        word = row.word
-        parent = row.sentence
-
-        #
-        # predicate
-        #
-        predicate = nikl.SRLPredicate(parent=srl)
-        pred_lemma, pred_sense_id = pred_str.split('__')
-        predicate.lemma = pred_lemma
-        try:
-            predicate.sense_id = int(pred_sense_id)
-        except:
-            predicate.sense_id = pred_sense_id
-
-        # form processing...
-        predicate.form = word.form
-        predicate.begin = word.begin
-        predicate.end = word.end
-
-        #
-        # arguments
-        #
+        predicate = SRLPredicate.from_min(row, parent=srl)
         arguments = []
         for arg_str in args_str.split():
-            
-            slash = arg_str.rfind('/')
-            arg_form = arg_str[:slash]
-            label_wordrange_str = arg_str[(slash+1):]
-            label, wordrange_str = label_wordrange_str.split('__')
-            wordids = wordrange_str.lstrip('@').split('-')
-            w1 = parent.word_list[int(wordids[0]) - 1]
-            w2 = parent.word_list[int(wordids[1]) - 1] if len(wordids) == 2 else w1
-            
-            arg = nikl.SRLArgument(parent=srl)
-            arg.begin = w1.begin
-            arg.end = w2.begin + len(arg_form)
-            arg.form = parent.form[arg.begin:arg.end]
-            arg.label = label
-
-            arguments.append(arg)
+            arguments.append(SRLArgument.from_min(arg_str, parent=srl))
 
         srl.predicate = predicate
         srl.argument = arguments
-
         return srl 
+
+    @classmethod
+    def parse_sr_arg_str(cls, sr_arg_str):
+        return SRLArgument.parse_sr_arg_str(sr_arg_str)
 
     @classmethod
     def process_sentrows(cls, sentrows):
@@ -586,6 +560,104 @@ class SRL(nikl.SRL):
     def _word(self):
         return self.__word
 
+class SRLPredicate(nikl.SRLPredicate):
+    def __init__(self,
+                 parent: SRL = None,
+                 form: str = None,
+                 begin: int = None,
+                 end: int = None,
+                 lemma: str = None,
+                 sense_id: int = None):
+        super().__init__(parent=parent, form=form, begin=begin, end=end, lemma=lemma, sense_id=sense_id)
+
+    @classmethod
+    def from_min(cls, row, parent: SRL):
+        pred_str = row._sr_pred
+        word = row.word
+
+        parsed = cls.parse_sr_pred_str(pred_str)
+        lemma = parsed['lemma']
+        sense_id = parsed['sense_id']
+        
+        #
+        # TODO: proess form; compute begin and end
+        #
+        form = word.form
+        begin = word.begin
+        end = word.end
+
+        return SRLPredicate(parent = parent, form = form, begin = begin, end = end,
+                            lemma = lemma, sense_id = sense_id)
+
+    @classmethod
+    def parse_sr_pred_str(cls, sr_pred_str):
+        """
+        :param sr_pred_str:  eg) 'HHHHH__4444401'
+        :type sr_pred_str: str
+        """
+        try:
+            pred_lemma, pred_sense_id = sr_pred_str.split('__')
+            pred_sense_id = int(pred_sense_id)
+        except:
+            raise ValueError("invalid literal for sr_pred_str: '{}'".format(sr_pred_str))
+
+        return {'lemma' : pred_lemma, 'sense_id' : pred_sense_id}
+
+
+class SRLArgument(nikl.SRLArgument):
+ 
+    def __init__(self,
+                 parent: SRL = None,
+                 form: str = None,
+                 label: str = None,
+                 begin: int = None,
+                 end: int = None):
+        super().__init__(parent = parent, form = form, label = label, begin = begin, end = end)
+
+    @classmethod
+    def from_min(cls, sr_arg_str, parent: SRL):
+        sent = parent.parent
+
+        parsed = cls.parse_sr_arg_str(sr_arg_str)
+        last_word_form = parsed['form']
+        label = parsed['label']
+        w1id = parsed['begin_word_id']
+        w2id = parsed['end_word_id']
+
+        w1 = sent.word_list[w1id - 1]
+        w2 = sent.word_list[w2id - 1]
+ 
+        begin = w1.begin
+        end = w2.begin + len(last_word_form)
+        form = sent.form[begin:end]
+
+        arg = cls(parent = parent, form = form, label = label, begin = begin, end = end)
+
+        return arg
+
+
+    @classmethod
+    def parse_sr_arg_str(cls, sr_arg_str):
+        """
+        :param sr_args_str: eg) 'HHHHHH/ARG0__@4-9' (multiword) or 'HH/ARG1__@13' (one word)
+        :type sr_args_str: str
+
+        :return: {'form' : 'HHHHHH', 'label' : 'ARG0', 'begin_word_id' : 4, 'end_word_id' : 9}
+        """
+        try:
+            slash_idx = sr_arg_str.rfind('/')
+            arg_form = sr_arg_str[:slash_idx]
+            label_wordrange_str = sr_arg_str[(slash_idx+1):]
+            label, wordrange_str = label_wordrange_str.split('__@')
+            wordids = wordrange_str.split('-')
+            w1id = int(wordids[0])
+            w2id = int(wordids[1]) if len(wordids) == 2 else w1id
+        except:
+            raise ValueError("invalid literal for sr_arg_str: '{}'".format(sr_arg_str))
+
+
+        return {'form' : arg_form, 'label' : label, 'begin_word_id' : w1id, 'end_word_id' : w2id }
+    
 
 class ZA(nikl.ZA):
     def __init__(self,
@@ -670,15 +742,8 @@ class ZAAntecedent(nikl.ZAAntecedent):
                  type: str = None,
                  sentence_id: int = None,
                  begin: int = None,
-                 end: int = None,
-                 **kwargs):
-        super().__init__(parent)
-        self.type = type
-        self.form = form
-        self.sentence_id = sentence_id
-        self.begin = begin
-        self.end = end
-        self.update(kwargs)
+                 end: int = None):
+        super().__init__(parent=parent, type=type, form=form, sentence_id=sentence_id, begin=begin, end=end)
  
     @classmethod
     def from_min(cls, row, parent: ZA):
@@ -703,6 +768,9 @@ class ZAAntecedent(nikl.ZAAntecedent):
             ante_word = ante_sent.word_list[ante_wid - 1]
             beg = ante_word.form.find(ante_form)
 
+            #
+            # TODO: compute begin and end
+            #
             if beg == -1 :
                 #print('ERROR', ante_form, ante_word, ante_word._row.morphemes)
                 ante_begin = ante_word.begin
@@ -718,15 +786,16 @@ class ZAAntecedent(nikl.ZAAntecedent):
     @classmethod
     def parse_za_ante_str(cls, za_ante_str):
         """
-        TODO: begin, end
         :param za_ante_str: example) HHH__@s3_9
         :type za_ante_str: str
 
-        :return: example) {'form': 'HHH', 'snum': 's3', 'word_id': 9} if document is None
-                          {'form': 'HHH', 'sentence_id': 'NWRW1800000021.1.2.1', 'begin': 11 , 'end': 13 } if document is given
+        :return: example) {'form': 'HHH', 'snum': 's3', 'word_id': 9}
         :rtype: dict
         """
         try:
+            #
+            # eg) za_ante_str = 'HHH__@s3_9' or 'HHH__@-1'
+            #
             ante_form, ante_swid = za_ante_str.split('__@')
 
             if ante_swid == '-1':
