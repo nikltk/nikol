@@ -209,9 +209,9 @@ class Morpheme(nikl.Morpheme):
                  row = None,
                  position: int = None):
         
-        slash_idx = morph_str.rfind('/')
-        form = morph_str[:slash_idx]
-        label = morph_str[(slash_idx+1):]
+        parsed = cls.parse_mp_str(morph_str)
+        form = parsed['form'] 
+        label = parsed['label'] 
 
         if row is not None:
             parent = row.sentence
@@ -223,6 +223,21 @@ class Morpheme(nikl.Morpheme):
         return cls(parent=parent, id=id, form=form, label=label,
                    word_id=word_id, position=position, row=row)
 
+    @classmethod
+    def parse_mp_str(cls, mp_str: str):
+        """
+        :param mp_str: example) 'HHH/NNP', '//SP'
+        """
+        morph_str = mp_str
+        try:
+            slash_idx = morph_str.rfind('/')
+            form = morph_str[:slash_idx]
+            label = morph_str[(slash_idx+1):]
+        except:
+            raise ValueError("invalid literal for mp_str: '{}'".format(mp_str))
+
+        return {'form' : form, 'label': label}
+        
     @classmethod
     def process_sentrows(cls, sentrows):
         if type(sentrows[0]).__name__ == 'UnifiedMinRow':
@@ -265,10 +280,28 @@ class WSD(nikl.WSD):
                  begin: int = None,
                  end: int = None,
                  row = None):
+
+        parsed = cls.parse_ls_str(ls_str)
+        form = parsed['form']
+        sense_id = parsed['sense_id']
+        pos = parsed['pos']
         
-        slash_idx = ls_str.rfind('/')
-        pos = ls_str[(slash_idx+1):]
-        form_sense = ls_str[:slash_idx].split('__')
+        if row is not None:
+            parent = row.sentence
+        else:
+            parent = None
+
+        return cls(parent=parent, word=form, sense_id=sense_id, pos=pos,
+                   begin=begin, end=end, row=row)
+
+    @classmethod
+    def parse_ls_str(cls, ls_str):
+        try:
+            slash_idx = ls_str.rfind('/')
+            pos = ls_str[(slash_idx+1):]
+            form_sense = ls_str[:slash_idx].split('__')
+        except:
+            raise ValueError("invalid literal for ls_str: '{}'".format(ls_str)) 
 
         if len(form_sense) == 1:
             form = form_sense[0]
@@ -277,15 +310,10 @@ class WSD(nikl.WSD):
             form = form_sense[0]
             sense_id = int(form_sense[1])
         else:
-            raise Exception('Illegal ls_str: {}'.format(ls_str))
+            raise ValueError("invalid literal for ls_str: '{}'".format(ls_str)) 
 
-        if row is not None:
-            parent = row.sentence
-        else:
-            parent = None
-
-        return cls(parent=parent, word=form, sense_id=sense_id, pos=pos,
-                   begin=begin, end=end, row=row)
+        return {'form' : form, 'sense_id' : sense_id, 'pos' : pos }
+        
 
     @classmethod
     def process_sentrows(cls, sentrows, morpheme_as_wsd=False):
@@ -385,7 +413,7 @@ class NE(nikl.NE):
             label = label_beg[0]
             beg = int(label_beg[1].strip('()'))
         else:
-            raise ValueError('invalid liter for ne_str: \'{}\''.format(ne_str))
+            raise ValueError("invalid literal for ne_str: '{}'".format(ne_str))
 
         return {'form' : form, 'label' : label, 'begin_within_word' : beg }
         
