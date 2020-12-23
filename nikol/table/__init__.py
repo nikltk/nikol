@@ -1,1 +1,2 @@
-from .reader import open
+from .reader import reader
+from .object import *
