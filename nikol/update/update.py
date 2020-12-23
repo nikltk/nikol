@@ -24,8 +24,10 @@ class Updater():
 		self.comment_list = []
 		# define pre_patch
 		self.prepatch = self._rec_ddict()
+		lines = [line.strip('\n') for line in ppatch_file]
+		ppatch_file.close()
 
-		for line in ppatch_file:
+		for line in lines:
 			one_ppatch = line.strip('\n').split('\t')
 			
 			if not len(one_ppatch) == 4:
@@ -54,13 +56,12 @@ class Updater():
 				#TODO make shallow copy here and use it to check all elements are checked
 				
 				with tsv_file.open(encoding = 'utf8') as f: lines = f.readlines()
-				print(tsv_file.stem)
+				# print(tsv_file.stem)
 
 				for line in lines:
 					tsv_line= line.strip('\n').split('\t')
 
 					if tsv_line:
-						print(len(tsv_line))
 
 						# if matched line exists in prepatch
 						if tsv_line[0] in self.prepatch[doc_id].keys():
@@ -75,7 +76,7 @@ class Updater():
 									field_name, sub_field = field.split('.')
 									field_idx = self.col_idx[field_name]
 
-									print(tsv_line, len(tsv_line), field_idx)
+									# print(tsv_line, len(tsv_line), field_idx)
 									# bug: ['NWRW1800000021-0003-00008-00001_013', 'mp.2', '닫/VV + 았/EC + 고/EC', ''] 4 3
 									# tsv_line seems to be patchline
 
