@@ -128,7 +128,7 @@ class Updater():
 
 									tsv_line[field_idx] = ' + '.join(sub_fields)
 
-									lines[line_idx] = '\t'.join(tsv_line)
+									lines[line_idx] = '\t'.join(tsv_line + ['\n'])
 
 
 								else:
@@ -136,10 +136,10 @@ class Updater():
 
 									tsv_line[field_idx] = after
 
-									lines[line_idx] = '\t'.join(tsv_line)
+									lines[line_idx] = '\t'.join(tsv_line + ['\n'])
 				
 				if not copied_original == lines:
-					with tsv_file.open('w') as f: print('\n'.join(lines), file=f)
+					with tsv_file.open('w') as f: print(''.join(lines), file=f)
 
 
 		if self.comment_list:
