@@ -1,3 +1,4 @@
+import copy
 import datetime
 from collections import defaultdict
 from pathlib import Path
@@ -110,6 +111,8 @@ class Updater():
 				tsv_file = self.tsv_path/f'{doc_id}.unified.min.tsv'
 
 				with tsv_file.open(encoding = 'utf8') as f: lines = f.readlines()
+				copied_original = copy.copy(lines)
+
 				for line_idx, line in enumerate(lines):
 					tsv_line= line.strip('\n').split('\t')
 					if tsv_line:
@@ -135,7 +138,8 @@ class Updater():
 
 									lines[line_idx] = '\t'.join(tsv_line)
 				
-				with tsv_file.open('w') as f: print('\n'.join(lines), file=f)
+				if not copied_original == lines:
+					with tsv_file.open('w') as f: print('\n'.join(lines), file=f)
 
 
 		if self.comment_list:
