@@ -140,7 +140,7 @@ class Updater():
 									lines[line_idx] = '\t'.join(tsv_line)
 				
 				if not copied_original == lines:
-					with tsv_file.open('w') as f: print('\n'.join(lines), file=f)
+					with tsv_file.open('w') as f: print(''.join(lines), file=f)
 
 
 		if self.comment_list:
