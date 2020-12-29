@@ -80,10 +80,11 @@ class Updater():
 									# print(tsv_line, len(tsv_line), field_idx)
 									# bug: ['NWRW1800000021-0003-00008-00001_013', 'mp.2', '닫/VV + 았/EC + 고/EC', ''] 4 3
 									# tsv_line seems to be patchline
+									before = tsv_line[field_idx].split(' + ')[int(sub_field)-1]
 
-									if not tsv_line[field_idx].split(' + ')[int(sub_field)-1] == after:
+									if not before == after:
 										#time, before, after, 
-										self.patch.append([tsv_line[0], field, after, ''])
+										self.patch.append([tsv_line[0], field, before, after, ''])
 										self._patch_dict[doc_id][tsv_line[0]][field] = after
 
 									#TODO: else + delete key, check in final line
@@ -93,7 +94,7 @@ class Updater():
 									# print(f"check if field match: {tsv_line[0], field}")
 									field_idx = self.col_idx[field]
 									if not tsv_line[field_idx] == after:
-										self.patch.append([tsv_line[0], field, after, ''])
+										self.patch.append([tsv_line[0], field, tsv_line[field_idx], after, ''])
 										self._patch_dict[doc_id][tsv_line[0]][field] = after
 
 
@@ -128,7 +129,7 @@ class Updater():
 
 									tsv_line[field_idx] = ' + '.join(sub_fields)
 
-									lines[line_idx] = '\t'.join(tsv_line + ['\n'])
+									lines[line_idx] = '\t'.join(tsv_line)
 
 
 								else:
@@ -136,10 +137,10 @@ class Updater():
 
 									tsv_line[field_idx] = after
 
-									lines[line_idx] = '\t'.join(tsv_line + ['\n'])
+									lines[line_idx] = '\t'.join(tsv_line)
 				
 				if not copied_original == lines:
-					with tsv_file.open('w') as f: print(''.join(lines), file=f)
+					with tsv_file.open('w') as f: print('\n'.join(lines), file=f)
 
 
 		if self.comment_list:
