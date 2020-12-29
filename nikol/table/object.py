@@ -72,7 +72,6 @@ class Sentence(nikl.Sentence):
                 self.SRL.append(s)
                 
                 
-               
     @property
     def _rows(self):
         return self.__rows
@@ -152,7 +151,6 @@ class Sentence(nikl.Sentence):
 
     def process_srl(self):
         self.SRL = SRL.process_sentrows(self._rows)
-
 
 class Word(nikl.Word):
     """
