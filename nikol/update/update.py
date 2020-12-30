@@ -82,7 +82,7 @@ class Updater():
         self.patch.sort()
 
     def write(self):
-        self.datenow = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
+        self.datenow = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         if self._patch_dict:
             for doc_id, gwid_items in self._patch_dict.items():
@@ -92,7 +92,7 @@ class Updater():
                 copied_original = copy.copy(lines)
 
                 for line_idx, line in enumerate(lines):
-                    tsv_line= line.strip('\n').split('\t')
+                    tsv_line= line.split('\t')
                     if tsv_line:
                         if tsv_line[0] in self._patch_dict[doc_id].keys():
                             for field, after in self._patch_dict[doc_id][tsv_line[0]].items(): 
@@ -115,13 +115,17 @@ class Updater():
 
                                     lines[line_idx] = '\t'.join(tsv_line)
                 if not copied_original == lines:
-                    with tsv_file.open('w') as f: print(''.join(lines), file=f)
+                    with tsv_file.open('w') as f: print(''.join(lines).strip('\n'), file=f)
 
         if self.comment_list:
-            print('\n'.join(self.comment_list), file = self.comment_file)
+            for comment in self.comment:
+                line = log.split('\t')[:2] + [self.datenow] + [log.split('\t')[-1]]
+                print('\t'.join(line), file = self.comment_file)
             self.comment_file.close()
 
         if self.patch:
-            print('\n'.join(['\t'.join([self.datenow]+i) for i in self.patch]), file = self.log_file)
-            self.log_file.close()
+            for log in self.patch:
+                line = log[:2] + [self.datenow] + log[2:4]
+                print('\t'.join(line), file = self.log_file)
+            self.log_file.close()            
             
