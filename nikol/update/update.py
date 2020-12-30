@@ -75,6 +75,8 @@ class Updater():
                                     field_idx = self.col_idx[field]
                                     if not tsv_line[field_idx] == after:
                                         self.patch.append([tsv_line[0], field, tsv_line[field_idx], after, ''])
+                                        # if last column add removed '\n'
+                                        if field == 'sr_args': after += '\n'
                                         self._patch_dict[doc_id][tsv_line[0]][field] = after
             else:
                 raise Exception(f"corresponding tsv file doesn't exist, given prepatch document id: {doc_id}")
@@ -118,7 +120,7 @@ class Updater():
                     with tsv_file.open('w') as f: print(''.join(lines).strip('\n'), file=f)
 
         if self.comment_list:
-            for comment in self.comment:
+            for log in self.comment_list:
                 line = log.split('\t')[:2] + [self.datenow] + [log.split('\t')[-1]]
                 print('\t'.join(line), file = self.comment_file)
             self.comment_file.close()
