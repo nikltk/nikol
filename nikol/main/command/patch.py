@@ -14,6 +14,7 @@ _setup_ = {
 
 import os
 import sys
+import datetime
 import argparse
 from nikol.main.command import SimpleCommand
 import nikol.update 
@@ -94,9 +95,11 @@ class PatchCommand(SimpleCommand):
             
     def create_updater(self, args):
         workname = os.path.basename(args.prepatch_filename).split('.')[0]
-        
-        comment_filename = os.path.join(args.origin, args.comment_dir, workname + '.comment.tsv')
-        log_filename = os.path.join(args.origin, args.log_dir, workname + '.log.tsv')
+
+        timestamp = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
+        patchname = workname + '_' + timestamp
+        comment_filename = os.path.join(args.origin, args.comment_dir, patchname + '.comment.tsv')
+        log_filename = os.path.join(args.origin, args.log_dir, patchname + '.log.tsv')
 
         self.updater = nikol.update.Updater()
         self.updater.Config(os.path.join(args.origin, args.corpus_dir),
