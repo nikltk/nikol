@@ -102,7 +102,7 @@ class PatchCommand(SimpleCommand):
         log_filename = os.path.join(args.origin, args.log_dir, patchname + '.log.tsv')
 
         self.updater = nikol.update.Updater()
-        self.updater.Config(os.path.join(args.origin, args.corpus_dir),
+        self.updater.config(os.path.join(args.origin, args.corpus_dir),
                   comment=open(comment_filename, 'w', encoding='utf-8'),
                   log = open(log_filename, 'w', encoding='utf-8'))
 

@@ -9,7 +9,7 @@ class Updater():
         tag_list = 'mp ls ne za_pred za_ante dp_label dp_head sr_pred sr_args cr'.split(' ')
         self.col_idx = {v:i+3 for i,v in zip(range(len(tag_list)), tag_list)}
 
-    def Config(self, tsv_path, comment, log):
+    def config(self, tsv_path, comment, log):
         self.tsv_path = Path(tsv_path)
         self.comment_file = comment
         self.log_file = log
