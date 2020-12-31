@@ -48,7 +48,10 @@ class Updater():
 
                 with tsv_file.open(encoding = 'utf8') as f: lines = f.readlines()
 
-                for line in lines:
+                #to check if writable
+                copied_tsv = copy.copy(lines)
+
+                for line_idx, line in enumerate(lines):
                     tsv_line= line.strip('\n').split('\t')
 
                     # if matched line exists in prepatch
@@ -69,20 +72,43 @@ class Updater():
                                 before = tsv_line[field_idx].split(' + ')[int(sub_field)-1]
 
                                 if not before == after:
-                                    self.patch.append([tsv_line[0], field, before, after, ''])
+
+                                    # --- from write
+                                    sub_fields = tsv_line[field_idx].split(' + ')
+                                    sub_fields[int(sub_idx)-1] = after
+                                    tsv_line[field_idx] = ' + '.join(sub_fields)
+                                    lines[line_idx] = '\t'.join(tsv_line) + '\n'
+                                    # ---
+
                                     self._patch_dict[doc_id][tsv_line[0]][field] = after
+                                    self.patch.append([tsv_line[0], field, before, after, ''])
+
+
                             else:
                                 field_idx = self.col_idx[field]
                                 if not tsv_line[field_idx] == after:
-                                    self.patch.append([tsv_line[0], field, tsv_line[field_idx], after, ''])
+                                    
+                                    # --- from write
+                                    field_idx = self.col_idx[field]
+                                    tsv_line[field_idx] = after
+                                    lines[line_idx] = '\t'.join(tsv_line) + '\n'
+                                    # ---                                
+
                                     # if last column add removed '\n'
                                     if field == 'sr_args': after += '\n'
                                     self._patch_dict[doc_id][tsv_line[0]][field] = after
+                                    self.patch.append([tsv_line[0], field, tsv_line[field_idx], after, ''])
+
+
+
                         # error Not all prepatchs reviewed line field has not existing gwid
                         if self._cp_patchline:
                             raise Exception(f"Some prepatch lines not checked, gwid: {self._cp_patchline.keys()}, field: {tsv_line[0]}")
                         self._cp_patchline = {}
-                                                            
+                        
+                if not len(lines) == len(copied_tsv):
+                    raise Exception(f"{tsv_file.name} tsv patch before/after line number not matched. before: {len(copied_tsv)}, after: {len(lines)}")
+
             else:
                 raise Exception(f"corresponding tsv file doesn't exist, given prepatch document id: {doc_id}")
 
@@ -112,8 +138,7 @@ class Updater():
                                 tsv_line[field_idx] = ' + '.join(sub_fields)
 
                                 lines[line_idx] = '\t'.join(tsv_line)
-
-
+                                
                             else:
                                 field_idx = self.col_idx[field]
 
