@@ -2,9 +2,7 @@ import copy
 import datetime
 from collections import defaultdict
 from pathlib import Path
-
 from warnings import warn
-import copy
 
 class Updater():
     def __init__(self):
@@ -39,45 +37,52 @@ class Updater():
             self.prepatch[doc_id][one_ppatch[0]][one_ppatch[1]] = one_ppatch[2]
 
     def make_patch(self):
-        # self.prepa
+
         self._patch_dict = self._rec_ddict()
 
         for doc_id, gwid_items in self.prepatch.items():
             tsv_file = self.tsv_path/f'{doc_id}.unified.min.tsv'
 
-            # print(f"loaded tsv_file: {tsv_file.stem}")
-
+            #TODO: need refactoring, repeated structure.... 1) tsv load and check 2) writable check
             if tsv_file.exists():
 
-                #TODO make shallow copy here and use it to check all elements are checked
                 with tsv_file.open(encoding = 'utf8') as f: lines = f.readlines()
-                # print(tsv_file.stem)
 
                 for line in lines:
                     tsv_line= line.strip('\n').split('\t')
 
-                    if tsv_line:
+                    # if matched line exists in prepatch
+                    if tsv_line[0] in self.prepatch[doc_id].keys():
 
-                        # if matched line exists in prepatch
-                        if tsv_line[0] in self.prepatch[doc_id].keys():
-                            for field, after in self.prepatch[doc_id][tsv_line[0]].items():
-                                # fix morpheme unit in case [mp, ls, en]
-                                if field.split('.')[0] in ['mp', 'ls', 'ne'] and '.' in field:
+                        self._cp_patchline = copy.copy(self.prepatch[doc_id][tsv_line[0]])
 
-                                    field_name, sub_field = field.split('.')
-                                    field_idx = self.col_idx[field_name]
-                                    before = tsv_line[field_idx].split(' + ')[int(sub_field)-1]
+                        for field, after in self.prepatch[doc_id][tsv_line[0]].items():
 
-                                    if not before == after:
-                                        self.patch.append([tsv_line[0], field, before, after, ''])
-                                        self._patch_dict[doc_id][tsv_line[0]][field] = after
-                                else:
-                                    field_idx = self.col_idx[field]
-                                    if not tsv_line[field_idx] == after:
-                                        self.patch.append([tsv_line[0], field, tsv_line[field_idx], after, ''])
-                                        # if last column add removed '\n'
-                                        if field == 'sr_args': after += '\n'
-                                        self._patch_dict[doc_id][tsv_line[0]][field] = after
+                            #  CAUTION, shallow copy, be sure not to make change in nested object
+                            del self._cp_patchline[field]
+
+                            # fix morpheme unit in case [mp, ls, en]
+                            if field.split('.')[0] in ['mp', 'ls', 'ne'] and '.' in field:
+
+                                field_name, sub_field = field.split('.')
+                                field_idx = self.col_idx[field_name]
+                                before = tsv_line[field_idx].split(' + ')[int(sub_field)-1]
+
+                                if not before == after:
+                                    self.patch.append([tsv_line[0], field, before, after, ''])
+                                    self._patch_dict[doc_id][tsv_line[0]][field] = after
+                            else:
+                                field_idx = self.col_idx[field]
+                                if not tsv_line[field_idx] == after:
+                                    self.patch.append([tsv_line[0], field, tsv_line[field_idx], after, ''])
+                                    # if last column add removed '\n'
+                                    if field == 'sr_args': after += '\n'
+                                    self._patch_dict[doc_id][tsv_line[0]][field] = after
+                        # error Not all prepatchs reviewed line field has not existing gwid
+                        if self._cp_patchline:
+                            raise Exception(f"Some prepatch lines not checked, gwid: {self._cp_patchline.keys()}, field: {tsv_line[0]}")
+                        self._cp_patchline = {}
+                                                            
             else:
                 raise Exception(f"corresponding tsv file doesn't exist, given prepatch document id: {doc_id}")
 
@@ -95,27 +100,26 @@ class Updater():
 
                 for line_idx, line in enumerate(lines):
                     tsv_line= line.split('\t')
-                    if tsv_line:
-                        if tsv_line[0] in self._patch_dict[doc_id].keys():
-                            for field, after in self._patch_dict[doc_id][tsv_line[0]].items(): 
+                    if tsv_line[0] in self._patch_dict[doc_id].keys():
+                        for field, after in self._patch_dict[doc_id][tsv_line[0]].items(): 
 
-                                if field.split('.')[0] in ['mp', 'ls', 'ne'] and '.' in field:
-                                    field_name, sub_idx = field.split('.')
-                                    field_idx = self.col_idx[field_name]
-                                    sub_fields = tsv_line[field_idx].split(' + ')
-                                    sub_fields[int(sub_idx)-1] = after
+                            if field.split('.')[0] in ['mp', 'ls', 'ne'] and '.' in field:
+                                field_name, sub_idx = field.split('.')
+                                field_idx = self.col_idx[field_name]
+                                sub_fields = tsv_line[field_idx].split(' + ')
+                                sub_fields[int(sub_idx)-1] = after
 
-                                    tsv_line[field_idx] = ' + '.join(sub_fields)
+                                tsv_line[field_idx] = ' + '.join(sub_fields)
 
-                                    lines[line_idx] = '\t'.join(tsv_line)
+                                lines[line_idx] = '\t'.join(tsv_line)
 
 
-                                else:
-                                    field_idx = self.col_idx[field]
+                            else:
+                                field_idx = self.col_idx[field]
 
-                                    tsv_line[field_idx] = after
+                                tsv_line[field_idx] = after
 
-                                    lines[line_idx] = '\t'.join(tsv_line)
+                                lines[line_idx] = '\t'.join(tsv_line)
                 if not copied_original == lines:
                     with tsv_file.open('w') as f: print(''.join(lines).strip('\n'), file=f)
 
