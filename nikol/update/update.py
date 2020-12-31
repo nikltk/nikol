@@ -75,6 +75,7 @@ class Updater():
 
                                     # --- from write
                                     sub_fields = tsv_line[field_idx].split(' + ')
+                                    field_name, sub_idx = field.split('.')
                                     sub_fields[int(sub_idx)-1] = after
                                     tsv_line[field_idx] = ' + '.join(sub_fields)
                                     lines[line_idx] = '\t'.join(tsv_line) + '\n'
