@@ -11,8 +11,11 @@ class Updater():
 
     def config(self, tsv_path, comment, log):
         self.tsv_path = Path(tsv_path)
-        self.comment_file = comment
-        self.log_file = log
+        self.comment_file, self.comment_enc = Path(comment.name), comment.encoding
+        self.log_file, self.log_enc = Path(log.name), log.encoding
+        comment.close(); log.close()
+        self.log_file.unlink()
+        self.comment_file.unlink()
 
     def _rec_ddict(self):
         return defaultdict(self._rec_ddict)
@@ -150,14 +153,13 @@ class Updater():
                     with tsv_file.open('w') as f: print(''.join(lines).strip('\n'), file=f)
 
         if self.comment_list:
-            for log in self.comment_list:
-                line = log.split('\t')[:2] + [self.datenow] + [log.split('\t')[-1]]
-                print('\t'.join(line), file = self.comment_file)
-            self.comment_file.close()
+            with self.comment_file.open('w', encoding = self.comment_enc) as f:
+                for log in self.comment_list:
+                    line = log.split('\t')[:2] + [self.datenow] + [log.split('\t')[-1]]
+                    print('\t'.join(line), file = f)
 
         if self.patch:
-            for log in self.patch:
-                line = log[:2] + [self.datenow] + log[2:4]
-                print('\t'.join(line), file = self.log_file)
-            self.log_file.close()            
-            
+            with self.log_file.open('w', encoding = self.log_enc) as f:
+                for log in self.patch:
+                    line = log[:2] + [self.datenow] + log[2:4]
+                    print('\t'.join(line), file = f)
