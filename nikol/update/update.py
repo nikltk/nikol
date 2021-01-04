@@ -162,4 +162,5 @@ class Updater():
             with self.log_file.open('w', encoding = self.log_enc) as f:
                 for log in self.patch:
                     line = log[:2] + [self.datenow] + log[2:4]
+                    if log[1] == 'sr_args': line = line[-1].strip('\n')
                     print('\t'.join(line), file = f)
