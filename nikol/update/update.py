@@ -90,6 +90,7 @@ class Updater():
 
                             else:
                                 field_idx = self.col_idx[field]
+                                before = tsv_line[field_idx]
                                 if not tsv_line[field_idx] == after:
                                     
                                     # --- from write
@@ -101,7 +102,7 @@ class Updater():
                                     # if last column add removed '\n'
                                     if field == 'sr_args': after += '\n'
                                     self._patch_dict[doc_id][tsv_line[0]][field] = after
-                                    self.patch.append([tsv_line[0], field, tsv_line[field_idx], after, ''])
+                                    self.patch.append([tsv_line[0], field, before, after, ''])
 
 
 
