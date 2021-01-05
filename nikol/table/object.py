@@ -421,10 +421,14 @@ class NE(nikl.NE):
                  id: int,
                  row):
         
-        parsed = NE.parse_ne_str(ne_str)
-        form = parsed['form']
-        label = parsed['label']
-        beg = parsed['begin_within_word']
+        try:
+            parsed = NE.parse_ne_str(ne_str)
+            form = parsed['form']
+            label = parsed['label']
+            beg = parsed['begin_within_word']
+        except Exception as e:
+            raise ValueError("{} at '{}' ({})".format(e, row._ne, row._gid))
+            
 
         slash_idx = ne_str.rfind('/')
         form = ne_str[:slash_idx]
