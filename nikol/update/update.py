@@ -64,7 +64,9 @@ class Updater():
 
                         for field, after in self.prepatch[doc_id][tsv_line[0]].items():
 
-                            #  CAUTION, shallow copy, be sure not to make change in nested object
+                            after = after.strip('\n')
+
+                            #  CAUTION, shallow copys, be sure not to make change in nested object
                             del self._cp_patchline[field]
 
                             # fix morpheme unit in case [mp, ls, en]
@@ -81,7 +83,7 @@ class Updater():
                                     field_name, sub_idx = field.split('.')
                                     sub_fields[int(sub_idx)-1] = after
                                     tsv_line[field_idx] = ' + '.join(sub_fields)
-                                    lines[line_idx] = '\t'.join(tsv_line) + '\n'
+                                    lines[line_idx] = '\t'.join(tsv_line).strip('\n') + '\n'
                                     # ---
 
                                     self._patch_dict[doc_id][tsv_line[0]][field] = after
@@ -90,17 +92,16 @@ class Updater():
 
                             else:
                                 field_idx = self.col_idx[field]
-                                before = tsv_line[field_idx]
+                                before = tsv_line[field_idx].strip('\n')
+
                                 if not tsv_line[field_idx] == after:
                                     
                                     # --- from write
                                     field_idx = self.col_idx[field]
                                     tsv_line[field_idx] = after
-                                    lines[line_idx] = '\t'.join(tsv_line) + '\n'
+                                    lines[line_idx] = '\t'.join(tsv_line).strip('\n') + '\n'
                                     # ---                                
 
-                                    # if last column add removed '\n'
-                                    if field == 'sr_args': after += '\n'
                                     self._patch_dict[doc_id][tsv_line[0]][field] = after
                                     self.patch.append([tsv_line[0], field, before, after, ''])
 
@@ -142,14 +143,15 @@ class Updater():
 
                                 tsv_line[field_idx] = ' + '.join(sub_fields)
 
-                                lines[line_idx] = '\t'.join(tsv_line)
+                                lines[line_idx] = '\t'.join(tsv_line).strip('\n') + '\n'
                                 
                             else:
                                 field_idx = self.col_idx[field]
 
                                 tsv_line[field_idx] = after
 
-                                lines[line_idx] = '\t'.join(tsv_line)
+                                lines[line_idx] = '\t'.join(tsv_line).strip('\n') + '\n'
+
                 if not copied_original == lines:
                     with tsv_file.open('w') as f: print(''.join(lines).strip('\n'), file=f)
 
@@ -157,11 +159,10 @@ class Updater():
             with self.comment_file.open('w', encoding = self.comment_enc) as f:
                 for log in self.comment_list:
                     line = log.split('\t')[:2] + [self.datenow] + [log.split('\t')[-1]]
-                    print('\t'.join(line), file = f)
+                    print('\t'.join(line).strip('\n'), file = f)
 
         if self.patch:
             with self.log_file.open('w', encoding = self.log_enc) as f:
                 for log in self.patch:
                     line = log[:2] + [self.datenow] + log[2:4]
-                    if log[1] == 'sr_args': line[-1] = line[-1].strip('\n')
-                    print('\t'.join(line), file = f)
+                    print('\t'.join(line).strip('\n'), file = f)
