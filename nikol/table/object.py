@@ -605,9 +605,12 @@ class SRLPredicate(nikl.SRLPredicate):
         pred_str = row._sr_pred
         word = row.word
 
-        parsed = cls.parse_sr_pred_str(pred_str)
-        lemma = parsed['lemma']
-        sense_id = parsed['sense_id']
+        try:
+            parsed = cls.parse_sr_pred_str(pred_str)
+            lemma = parsed['lemma']
+            sense_id = parsed['sense_id']
+        except Exception as e:
+            raise ValueError("{} at '{}' ({})".format(e, pred_str, row))
         
         #
         # TODO: proess form; compute begin and end
