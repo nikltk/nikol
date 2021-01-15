@@ -74,6 +74,22 @@ Errors
 from collections import deque
 
 
+def find_crossing(head_list):
+    found = []
+    for i, head in enumerate(head_list):
+        if i == 0: continue
+        elif i == len(head_list) - 1 : break
+        
+        word_id = i + 1
+        prev_head = head_list[i-1]
+        if head <= word_id:
+            found.append(word_id)
+        elif word_id < prev_head and head > prev_head:
+            found.append(word_id)
+
+    return found
+
+
 def table(document, spec='min', valid=False):
     rows = []
     for sent in document.sentence_list:
