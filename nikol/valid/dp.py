@@ -3,7 +3,7 @@
 #
 # Author: jwk, yhj
 #
-# tagset checking not yet implemented! 
+# tagset checking not yet implemented!
 
 """
 Validation Level 2 of DP corpus
@@ -75,19 +75,85 @@ from collections import deque
 
 
 def find_crossing(head_list):
-    found = []
+    heads = []
     for i, head in enumerate(head_list):
-        if i == 0: continue
-        elif i == len(head_list) - 1 : break
-        
-        word_id = i + 1
-        prev_head = head_list[i-1]
-        if head <= word_id:
-            found.append(word_id)
-        elif word_id < prev_head and head > prev_head:
-            found.append(word_id)
+        if head == -1:
+            heads.append(len(head_list) + 1)
+        else:
+            heads.append(head)
 
+    found = []
+
+    for i in range(len(heads)-1):
+        for j in range(i+1, len(heads)):
+            id1 = i + 1
+            head1 = heads[i]
+
+            id2 = j + 1
+            head2 = heads[j]
+
+            if max(id1, head1) <= min(id2, head2):
+                continue
+
+            if not (id1 <= id2 <= head1 and id1 <= head2 <= head1) and not (id2 <= id1 <= head2 and id2 <= head1 <= head2):
+                found.append((id1, id2))
     return found
+
+
+class Word:
+    def __init__(self, id, head, dependents):
+        self.id = id
+        self.head = head
+        self.deps = dependents
+        self.head_node = None
+        self.dep_nodes = []
+        self.isRoot = (head == -1)
+        self.isTerminal = (len(dependents) == 0)
+
+
+class Sentence:
+    def __init__(self, head_list):
+        words = []
+        for i in range(len(head_list)):
+            deps = [j+1 for j, head in enumerate(head_list) if head == i+1]
+            words.append(Word(i+1, head_list[i], deps))
+
+        root_index = -1
+        for i, word in enumerate(words):
+            if not word.isRoot:
+                word.head_node = words[word.head-1]
+                words[word.head-1].dep_nodes.append(word)
+            else:
+                root_index = i
+
+        self.words = words
+        self.length = len(words)
+        self.root_node = words[root_index]
+
+
+def check_tree_disconnection_recursive(current, visited):
+    visited.append(current)
+
+    if current.isTerminal:
+        return visited
+
+    else:
+        explore = [
+            dep_node for dep_node in current.dep_nodes if dep_node not in visited]
+        visited = list(set().union(
+            *[check_tree_disconnection_recursive(node, visited) for node in explore]))
+        return visited
+
+
+def check_tree_disconnection(head_list):
+    sent = Sentence(head_list)
+    root = sent.root_node
+    visited = []
+
+    visited = check_tree_disconnection_recursive(root, visited)
+
+    disconnected_nodes = [node for node in sent.words if node not in visited]
+    return [node.id for node in disconnected_nodes]
 
 
 def table(document, spec='min', valid=False):
@@ -96,36 +162,38 @@ def table(document, spec='min', valid=False):
 
         # find root list
         root = [i.get('head') for i in sent.dp_list if i.get('head') == -1]
-        id2dp = {j.get('word_id'):j.get('dependent') for j in sent.dp_list if len(j.get('dependent')) > 0}
-        id2head = {j.get('word_id'):j.get('head') for j in sent.dp_list}
+        id2dp = {j.get('word_id'): j.get('dependent')
+                 for j in sent.dp_list if len(j.get('dependent')) > 0}
+        id2head = {j.get('word_id'): j.get('head') for j in sent.dp_list}
 
         dp_err = set()
-        for head_id, dependent in id2dp.items(): # let's find  out depenent's idx
+        for head_id, dependent in id2dp.items():  # let's find  out depenent's idx
             for dp_idx in dependent:
                 if not id2head[dp_idx] == head_id:
                     dp_err.update([dp_idx, head_id])
 
         word_idx = 1
         for dp in sent.dp_list:
-            if not hasattr(dp, '_error'): dp._error = []
+            if not hasattr(dp, '_error'):
+                dp._error = []
 
             word = sent.word_list[dp.word_id - 1]
             if word.form != dp.word_form:
                 dp._error.append('ErrorDPWordForm({})'.format(word.form))
- 
 
-            if not dp.word_id == word_idx: dp._error.append('ErrorDPId();')
+            if not dp.word_id == word_idx:
+                dp._error.append('ErrorDPId();')
 
             # error if head is not single
-            if not len(root) == len(set(root)) and dp.head==-1:
+            if not len(root) == len(set(root)) and dp.head == -1:
                 dp._error.append('ErrorDPHead();')
 
             if dp.word_id in dp_err:
-                dp._error.append('ErrorDPDependent();')   
+                dp._error.append('ErrorDPDependent();')
 
             word_idx += 1
-            
-            if spec == 'full' :
+
+            if spec == 'full':
                 fields = [
                     sent.fwid,
                     str(word.id),
@@ -144,8 +212,9 @@ def table(document, spec='min', valid=False):
                 ]
             else:
                 raise Exception('Not supported spec: {}', spec)
-                
-            if valid : fields.append(''.join(dp._error))
+
+            if valid:
+                fields.append(''.join(dp._error))
 
             rows.append('\t'.join(fields))
 
@@ -157,12 +226,12 @@ def trigram(dp):
     trigram = ''
     if len(sent.dp_list) == 1:
         trigram = dp.word_form
-    elif dp.word_id == 1 :
+    elif dp.word_id == 1:
         trigram = dp.word_form + ' ' + sent.dp_list[dp.word_id].word_form
     elif dp.word_id == len(sent.dp_list):
         trigram = sent.dp_list[dp.word_id - 2].word_form + ' ' + dp.word_form
     else:
-        trigram = sent.dp_list[dp.word_id - 2].word_form + ' ' + dp.word_form + ' ' + sent.dp_list[dp.word_id].word_form
+        trigram = sent.dp_list[dp.word_id - 2].word_form + ' ' + \
+            dp.word_form + ' ' + sent.dp_list[dp.word_id].word_form
 
     return trigram
-
