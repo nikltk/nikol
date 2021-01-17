@@ -100,62 +100,6 @@ def find_crossing(head_list):
     return found
 
 
-class Word:
-    def __init__(self, id, head, dependents):
-        self.id = id
-        self.head = head
-        self.deps = dependents
-        self.head_node = None
-        self.dep_nodes = []
-        self.isRoot = (head == -1)
-        self.isTerminal = (len(dependents) == 0)
-
-
-class Sentence:
-    def __init__(self, head_list):
-        words = []
-        for i in range(len(head_list)):
-            deps = [j+1 for j, head in enumerate(head_list) if head == i+1]
-            words.append(Word(i+1, head_list[i], deps))
-
-        root_index = -1
-        for i, word in enumerate(words):
-            if not word.isRoot:
-                word.head_node = words[word.head-1]
-                words[word.head-1].dep_nodes.append(word)
-            else:
-                root_index = i
-
-        self.words = words
-        self.length = len(words)
-        self.root_node = words[root_index]
-
-
-def check_tree_disconnection_recursive(current, visited):
-    visited.append(current)
-
-    if current.isTerminal:
-        return visited
-
-    else:
-        explore = [
-            dep_node for dep_node in current.dep_nodes if dep_node not in visited]
-        visited = list(set().union(
-            *[check_tree_disconnection_recursive(node, visited) for node in explore]))
-        return visited
-
-
-def check_tree_disconnection(head_list):
-    sent = Sentence(head_list)
-    root = sent.root_node
-    visited = []
-
-    visited = check_tree_disconnection_recursive(root, visited)
-
-    disconnected_nodes = [node for node in sent.words if node not in visited]
-    return [node.id for node in disconnected_nodes]
-
-
 def table(document, spec='min', valid=False):
     rows = []
     for sent in document.sentence_list:
