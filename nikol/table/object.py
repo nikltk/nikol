@@ -521,11 +521,13 @@ class DP(nikl.DP):
             row.dp = d
             dps.append(d)
 
-            
-
         for dp in dps:
             if dp.head != -1:
-                head_node = dps[dp.head - 1]
+                try:
+                    head_node = dps[dp.head - 1]
+                except IndexError:
+                    raise IndexError('dp.head out of range at {} (dp : {})'.format(dp._row.word.gid, dp))
+                
                 head_node.dependent.append(dp.word_id)
 
         return dps
