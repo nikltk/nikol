@@ -38,7 +38,30 @@ class Document(nikl.Document):
             self.ZA = []
         else:
             self.ZA = ZA.process_docrows(self) 
-  
+
+
+    def make_mp_corpus(self):
+        for s in self.sentence_list:
+            s.process_morpheme()
+
+    def make_ls_corpus(self):
+        for s in self.sentence_list:
+            s.process_wsd_and_morpheme()
+
+    def make_ne_corpus(self):
+        for s in self.sentence_list:
+            s.process_ne()
+
+    def make_za_corpus(self):
+        self.process_za()
+ 
+    def make_dp_corpus(self):
+        for s in self.sentence_list:
+            s.process_dp()
+
+    def make_sr_corpus(self):
+        for s in self.sentence_list:
+            s.process_srl()
 
 class Sentence(nikl.Sentence):
 
