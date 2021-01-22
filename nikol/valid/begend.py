@@ -1,6 +1,6 @@
 from copy import copy
 
-class BegEnd(object):
+class BegEndClass(object):
     def __init__(self, word, mp_list):
 
         self.word = word
@@ -202,7 +202,6 @@ class BegEnd(object):
 
         self._idx += 1
 
-
 def get_cv_list(chars):
     res = []
     for char in chars:
@@ -235,6 +234,10 @@ def decompose(han):
 
     return [lead, vowel, trail]
 
+
+def begend(words, mps):
+    begend_inst = BegEndClass(words, mps)
+    return begend_inst.find_begend()
 
 # cho list        
 cho_ls = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']

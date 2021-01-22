@@ -10,7 +10,7 @@ from . import dp
 from . import ne
 from . import cr
 from . import sr
-from . import begend
+from .begend import begend
 
 
 def table(object, corpus_type=None, spec='min', valid=False):
