@@ -16,8 +16,8 @@ class BegEndClass(object):
         # print("ANSWER: ", self.word,self.mp_list)
 
         while self._mp_list:
-            self.one_step(self._mp_list[0], self._idx)
             # print(f"{self._idx}th mp: {self._word}, {self._mp_list}, {self._crt_idx}, {self._begend_list},")
+            self.one_step(self._mp_list[0], self._idx)
             if self._idx > 100:
                 raise Exception('iteration exceeded')
                 break
@@ -28,6 +28,9 @@ class BegEndClass(object):
 
         if len(self._begend_list) != len(self.mp_list):
             raise Exception('len(ls_morpheme) != len(begend_list)')
+
+        if self._begend_list[0][0] != 0:
+            raise Exception("begin not starts with zero")
         
         self.output = copy(self.mp_list)
         for idx, ls_mp in enumerate(self.output):
@@ -41,6 +44,7 @@ class BegEndClass(object):
         self._mp, self._mp_pos = mp['form'], mp['label']
         # print(self._begend_list, self._mp, self._word)
         if self._word[:3] in PREV_DICT.keys():
+            # print('case1')
             vals = PREV_DICT[self._word[:3]]
             mp_forms = vals['form']
             trg_forms = [i['form'] for i in self._mp_list[:len(mp_forms)]]
@@ -55,6 +59,7 @@ class BegEndClass(object):
                 self._word = self._word[3:]     
 
         elif self._word[:2] in PREV_DICT.keys():
+            # print('case2')
             vals=PREV_DICT[self._word[:2]]
             mp_forms = vals['form']
             trg_forms = [i['form'] for i in self._mp_list[:len(mp_forms)]]
@@ -68,6 +73,7 @@ class BegEndClass(object):
                 self._word = self._word[2:]
 
         elif self._word[:1] in PREV_DICT:
+            # print('case3')
             vals = PREV_DICT[self._word[:1]]
             mp_forms = vals['form']
     
@@ -83,8 +89,8 @@ class BegEndClass(object):
                 self._word = self._word[1:]            
         
         elif self._word[:len(self._mp)] == self._mp:
+            # print('case4')
             """Match without any exception"""
-
             self._begend_list.append((self._crt_idx, self._crt_idx + len(self._mp)))
             self._mp_list.pop(0)
             self._crt_idx += len(self._mp)            
@@ -92,6 +98,7 @@ class BegEndClass(object):
 
 
         elif self._mp in LEAD_DICT:
+            # print('case5')
             word_form = LEAD_DICT[self._mp]['form'][0]
             if self._word[:len(word_form)] == word_form:
                 begend_ls = LEAD_DICT[self._mp]['begend']
@@ -101,31 +108,33 @@ class BegEndClass(object):
                 self._mp_list.pop(0)
 
         elif check_decompose(self._word, self._mp):
+            # print('case6')
             """decompose c/v and match"""
             # print("first passed", file = self.f)
             wd_dc, mp_dc = check_decompose(self._word, self._mp)
             if mp_dc == wd_dc[:len(mp_dc)]:
-                
-                if wd_dc[len(mp_dc)] == 'ㄹ' and not self._mp_list[1]['form'].startswith('ㄹ'):
+                mp_form_list = [i['form'] for i in self._mp_list[1:] if i['form'].startswith('ㄹ')]
+                if wd_dc[len(mp_dc)] == 'ㄹ' and not mp_form_list:
+                    self._begend_list.append((self._crt_idx, self._crt_idx + len(self._mp)))
+                    self._mp_list.pop(0)
                     self._crt_idx += len(self._mp)
                     self._word = self._word[len(self._mp):]
                 else:
+                    self._begend_list.append((self._crt_idx, self._crt_idx + len(self._mp)))
+                    self._mp_list.pop(0)                    
                     self._crt_idx += len(self._mp)-1
                     self._word = wd_dc[len(mp_dc)] + self._word[len(self._mp):]
-
-                self._begend_list.append((self._crt_idx, self._crt_idx + len(self._mp)))
-                self._mp_list.pop(0)
-
             else:
-                raise Exception("(4) **not matched .. 2nd lookup")
+                pass
             # find gliding vowels
 
         elif self._word[:2] in NEXT_DICT:
+            # print('case7')
             vals = NEXT_DICT[self._word[:2]]
             mp_forms = vals['form']
             trg_forms = [i['form'] for i in self._mp_list[:(len(mp_forms))]]
             if not list(mp_forms) == trg_forms:
-                raise Exception("Not defiend case")
+                pass
             else:
                 begend_ls =NEXT_DICT[self._word[:2]]['begend']            
                 updated = list(map(lambda x: (x[0]+self._crt_idx, x[1]+self._crt_idx), begend_ls))
@@ -135,6 +144,7 @@ class BegEndClass(object):
                 self._word = self._word[2:]
 
         elif self._word[:1] in NEXT_DICT:
+            # print('case8')
             vals = NEXT_DICT[self._word[:1]]
             mp_forms = vals['form']
 
@@ -152,6 +162,7 @@ class BegEndClass(object):
                 self._word = self._word[1:]
 
         elif get_cv_list(self._mp)[-1] == 'ㅎ' and self._mp_pos == 'VA':
+            # print('case9')
             if self._mp_list[1]['form'] in ['ㄹ', 'ㄴ']:
                 tmp_trg = self._mp_list[2]['form']
                 mp_len = len(self._mp)
@@ -176,6 +187,7 @@ class BegEndClass(object):
         # ------
 
         if not self._mp_list:
+            self._idx += 1
             return
         else:
             self._mp, self._mp_pos = self._mp_list[0]['form'], self._mp_list[0]['label']
@@ -186,20 +198,27 @@ class BegEndClass(object):
                 pass
 
             next_mps = ''.join([i['form'] for i in self._mp_list[1:]])
-            two_mps = ''.join([i['form'] for i in self._mp_list[1:2]])
+            mp_tuple = tuple([i['form'] for i in self._mp_list[1:]])
     
             if len(self._mp_list) < 2: next_mps = ''
 
             next_mps_cvs = get_cv_list(next_mps)
             words_cvs = get_cv_list(self._word)
             # print(f"remained word cvs: {words_cvs}, mp cvs : {next_mps_cvs}")
+            # prev_dict_forms = [i['form'] for i in PREV_DICT.values()]
+            # next_dict_forms = [i['form'] for i in NEXT_DICT.values()]
+            next_dict_forms = {i['form']:k for k, i in NEXT_DICT.items()}
 
-            if (next_mps_cvs == words_cvs) and (self._mp_pos == ETC_DICT[self._mp]['label']):
-                self._mp_list.pop(0)
-                
-                begend_tup = tuple(map(lambda x: self._crt_idx+x, ETC_DICT[self._mp]['begend']))
-                self._begend_list.append(begend_tup)
-
+            if self._mp_pos == ETC_DICT[self._mp]['label']:
+                if (next_mps_cvs == words_cvs):
+                    self._mp_list.pop(0)
+                    begend_tup = tuple(map(lambda x: self._crt_idx+x, ETC_DICT[self._mp]['begend']))
+                    self._begend_list.append(begend_tup)
+                elif (mp_tuple in next_dict_forms) and (self._word == next_dict_forms[mp_tuple]):
+                    self._mp_list.pop(0)
+                    begend_tup = tuple(map(lambda x: self._crt_idx+x, ETC_DICT[self._mp]['begend']))
+                    self._begend_list.append(begend_tup)                    
+ 
         self._idx += 1
 
 def get_cv_list(chars):
@@ -256,6 +275,7 @@ ETC_DICT={
     'ㄹ':{'form':('ㄹ',),'begend': (-1,0), 'label':'ETM'},
     }
 
+
 PREV_DICT = {
     
     '이던지': {'form': ('이든지',),'begend': [(0, 3)]},
@@ -271,14 +291,20 @@ PREV_DICT = {
 
     '당해': {'form': ('당하', '아'),'begend': [(0,2), (1,2)]},
     '당했': {'form': ('당하', '았'),'begend': [(0,2), (1,2)]},
+    '이랬': {'form': ('이러', '었'),'begend': [(0,2), (1,2)]},
+    '만났': {'form': ('만나', '았'),'begend': [(0,2), (1,2)]},
     '드렸': {'form': ('드리', '었'),'begend': [(0,2), (1,2)]},
+    '버렸': {'form': ('버리', '었'),'begend': [(0,2), (1,2)]},
     '드려': {'form': ('드리', '어'),'begend': [(0,2), (1,2)]},
+    '숨져': {'form': ('숨지', '어'),'begend': [(0,2), (1,2)]},
+    '속여': {'form': ('속이', '어'),'begend': [(0,2), (1,2)]},
     '챙겨': {'form': ('챙기', '어'),'begend': [(0,2), (1,2)]},
     '달라졌': {'form': ('달라지', '었'),'begend': [(0,3), (2,3)]},
 
     '시켜도': {'form': ('시키', '어도'),'begend': [(0,2), (1,3)]}, 
     '시켜라': {'form': ('시키', '어라'),'begend': [(0,2), (1,3)]}, 
     '시켜야': {'form': ('시키', '어야'),'begend': [(0,2), (1,3)]}, 
+    '시켜요': {'form': ('시키', '어요'),'begend': [(0,2), (1,3)]}, 
     '시켜서': {'form': ('시키', '어서'),'begend': [(0,2), (1,3)]}, 
     '딱딱해': {'form': ('딱딱하', '아'),'begend': [(0,3), (2,3)]},
     
@@ -301,6 +327,7 @@ PREV_DICT = {
 
     '해야죠': {'form': ('하', '아야지', '요'),'begend': [(0,1), (0,3), (2,3)]},
     '하셔야': {'form': ('하', '시', '어야'),'begend': [(0,1), (1,2), (1,3)]},
+    '하셔도': {'form': ('하', '시', '어도'),'begend': [(0,1), (1,2), (1,3)]},
     '돼야지': {'form': ('되', '어야지'),'begend': [(0,1), (0,3)]},
     '돼선': {'form': ('되', '어서', 'ㄴ'),'begend': [(0,1), (0,2), (1,2)]},
 
@@ -315,6 +342,7 @@ PREV_DICT = {
     '고게': {'form': ('고거', '이'),'begend': [(0,2), (1,2)]},
 
     '나눠': {'form': ('나누', '어'),'begend': [(0,2), (1,2)]},
+    '맞춰': {'form': ('맞추', '어'),'begend': [(0,2), (1,2)]},
     '나눠요': {'form': ('나누', '어요'),'begend': [(0,2), (1,3)]},
     '비겨': {'form': ('비기', '어'),'begend': [(0,2), (1,2)]},
     '시켰': {'form': ('시키', '었'),'begend': [(0,2), (1,2)]},
@@ -329,7 +357,6 @@ PREV_DICT = {
 
     '네겐': {'form': ('너', '에게', 'ㄴ'),'begend': [(0,1), (0,2), (1,2)]},
     '내겐': {'form': ('나', '에게', 'ㄴ'),'begend': [(0,1), (0,2), (1,2)]},    
-
 
 }
 
@@ -389,6 +416,7 @@ NEXT_DICT = {
     '였': {'form': ('이', '었'),'begend': [(0,1), (0,1)]},
     '왔': {'form': ('오', '았'),'begend': [(0,1), (0,1)]},
     '와': {'form': ('오', '아'),'begend': [(0,1), (0,1)]},
+    '봐': {'form': ('보', '아'),'begend': [(0,1), (0,1)]},
     
     '네': {'form': ('너', '의'),'begend': [(0,1), (0,1)]},
     '게': {'form': ('거', '이'),'begend': [(0,1), (0,1)]},
@@ -407,7 +435,9 @@ NEXT_DICT = {
 }
 
 LEAD_DICT = {
+    '이든': {'form': ('든',),'begend': [(0, 1)]},
     '이라던가': {'form': ('라던가',),'begend': [(0, 3)]},
+    '이라던지': {'form': ('라던지',),'begend': [(0, 3)]},
     '이라든지': {'form': ('라든지',),'begend': [(0, 3)]},
     '이라든가': {'form': ('라든가',),'begend': [(0, 3)]},
     '이라고': {'form': ('라고',),'begend': [(0, 2)]},
