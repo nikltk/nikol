@@ -52,21 +52,20 @@ class BegEndClass(object):
                     # print(self._mp_list)
                     #update va
                     self._begend_list.append((self._crt_idx, self._crt_idx+mp_len))
-                    self._begend_list.append((self._crt_idx+mp_len, self._crt_idx+mp_len)) #update etm index
+                    self._begend_list.append((self._crt_idx+mp_len-1, self._crt_idx+mp_len)) #update etm index
                     self._crt_idx += mp_len
                     self._mp_list = self._mp_list[2:]
-                    self._word = self._word[(mp_len+1):]
+                    self._word = self._word[(mp_len):]
                 else:
                     pass
             elif (self._mp_list[1]['form'] == '어') and (self._mp_list[1]['label'] in ['EC', 'EF']):
                 if self._word[mp_len-1] == '워':
-                    # print(self._mp_list)
-                    #update va
+
                     self._begend_list.append((self._crt_idx, self._crt_idx+mp_len))
-                    self._begend_list.append((self._crt_idx+mp_len, self._crt_idx+mp_len)) #update etm index
+                    self._begend_list.append((self._crt_idx+mp_len-1, self._crt_idx+mp_len)) #update etm index
                     self._crt_idx += mp_len
                     self._mp_list = self._mp_list[2:]
-                    self._word = self._word[(mp_len+1):]
+                    self._word = self._word[(mp_len):]
                 else:
                     pass
             elif (self._mp_list[1]['form'] == 'ㄹ') and (self._mp_list[1]['label'] == 'ETM'):
@@ -74,10 +73,10 @@ class BegEndClass(object):
                     # print(self._mp_list)
                     #update va
                     self._begend_list.append((self._crt_idx, self._crt_idx+mp_len))
-                    self._begend_list.append((self._crt_idx+mp_len, self._crt_idx+mp_len)) #update etm index
+                    self._begend_list.append((self._crt_idx+mp_len-1, self._crt_idx+mp_len)) #update etm index
                     self._crt_idx += mp_len
                     self._mp_list = self._mp_list[2:]
-                    self._word = self._word[(mp_len+1):]
+                    self._word = self._word[(mp_len):]
                 else:
                     pass
             elif (self._mp_list[1]['form'] == '었') and (self._mp_list[1]['label'] == 'EP'):
@@ -85,15 +84,20 @@ class BegEndClass(object):
                     # print(self._mp_list)
                     #update va
                     self._begend_list.append((self._crt_idx, self._crt_idx+mp_len))
-                    self._begend_list.append((self._crt_idx+mp_len, self._crt_idx+mp_len)) #update etm index
+                    self._begend_list.append((self._crt_idx+mp_len-1, self._crt_idx+mp_len)) #update etm index
                     self._crt_idx += mp_len
                     self._mp_list = self._mp_list[2:]
-                    self._word = self._word[(mp_len+1):]
+                    self._word = self._word[(mp_len):]
                 else:
                     pass                            
                     
+        if not self._mp_list:
+            self._idx += 1
+            return
+        else:
+            self._mp, self._mp_pos = self._mp_list[0]['form'], self._mp_list[0]['label']
 
-        elif self._word[:3] in PREV_DICT.keys():
+        if self._word[:3] in PREV_DICT.keys():
             # print('case1')
             vals = PREV_DICT[self._word[:3]]
             mp_forms = vals['form']
