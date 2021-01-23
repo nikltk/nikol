@@ -13,8 +13,11 @@ class BegEndClass(object):
         self._mp_list = copy(self.mp_list)
         self._idx = 0
 
-        # print("ANSWER: ", self.word,self.mp_list)
-
+        if ''.join([i['form'] for i in self.mp_list]) == self._word:
+            for vals in self.mp_list:
+                self._begend_list.append((self._crt_idx, self._crt_idx+len(vals['form'])))
+                self._mp_list.pop(0)
+                self._crt_idx += len(vals['form'])
         while self._mp_list:
             # print(f"{self._idx}th mp: {self._word}, {self._mp_list}, {self._crt_idx}, {self._begend_list},")
             self.one_step(self._mp_list[0], self._idx)
@@ -38,8 +41,7 @@ class BegEndClass(object):
             ls_mp['end'] = self._begend_list[idx][1]
 
         return self.output
-
-    
+   
     def one_step(self, mp, idx):
         self._mp, self._mp_pos = mp['form'], mp['label']
         # print(self._begend_list, self._mp, self._word)
