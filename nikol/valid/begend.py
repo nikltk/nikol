@@ -19,7 +19,7 @@ class BegEndClass(object):
                 self._mp_list.pop(0)
                 self._crt_idx += len(vals['form'])
         while self._mp_list:
-            # print(f"{self._idx}th mp: {self._word}, {self._mp_list}, {self._crt_idx}, {self._begend_list},")
+            # print(f"{self._idx}th mp: {self._word}, {self._mp_list}, {self._crt_idx}, \n{self._begend_list},")
             self.one_step(self._mp_list[0], self._idx)
             if self._idx > 100:
                 raise Exception('iteration exceeded')
@@ -98,6 +98,23 @@ class BegEndClass(object):
             return
         else:
             self._mp, self._mp_pos = self._mp_list[0]['form'], self._mp_list[0]['label']
+
+        if len(self._mp_list) > 1:
+            if (self._mp_pos in ['VV','VX','XSV']) and ((self._mp_list[1]['label'] in ['EP']) and (self._mp_list[1]['form'] in ['았', '었'])):
+                if (get_cv_list(self._mp)[-1] in ['ㅏ', 'ㅐ', 'ㅓ', 'ㅔ', 'ㅣ', 'ㅡ', 'ㅗ', 'ㅜ','ㅎ']) and self._mp != '하':
+                    self._begend_list.append((self._crt_idx, self._crt_idx+len(self._mp)))
+                    if (get_cv_list(self._mp)[-1] == 'ㅎ') and get_cv_list(self._word[len(self._mp)])[-2:] != ['ㅘ', 'ㅆ']:
+                        self._crt_idx += len(self._mp)+1
+                        self._begend_list.append((self._crt_idx-1, self._crt_idx))
+                        self._word = self._word[len(self._mp)+1:]
+                    else:
+                        self._crt_idx += len(self._mp)
+                        self._begend_list.append((self._crt_idx-1, self._crt_idx))
+                        self._word = self._word[len(self._mp):]
+                        
+                    self._mp_list = self._mp_list[2:]
+                else:
+                    pass
 
         if self._word[:3] in PREV_DICT.keys():
             # print('case1')
@@ -260,9 +277,6 @@ class BegEndClass(object):
 
             next_mps_cvs = get_cv_list(next_mps)
             words_cvs = get_cv_list(self._word)
-            # print(f"remained word cvs: {words_cvs}, mp cvs : {next_mps_cvs}")
-            # prev_dict_forms = [i['form'] for i in PREV_DICT.values()]
-            # next_dict_forms = [i['form'] for i in NEXT_DICT.values()]
             next_dict_forms = {i['form']:k for k, i in NEXT_DICT.items()}
 
             if self._mp_pos == ETC_DICT[self._mp]['label']:
@@ -343,16 +357,18 @@ PREV_DICT = {
     # '다운': {'form': ('답', 'ㄴ'),'begend': [(0,2), (1,2)]},
 
     '당해': {'form': ('당하', '아'),'begend': [(0,2), (1,2)]},
-    '당했': {'form': ('당하', '았'),'begend': [(0,2), (1,2)]},
+    # '당했': {'form': ('당하', '았'),'begend': [(0,2), (1,2)]},
     '이랬': {'form': ('이러', '었'),'begend': [(0,2), (1,2)]},
-    '만났': {'form': ('만나', '았'),'begend': [(0,2), (1,2)]},
-    '드렸': {'form': ('드리', '었'),'begend': [(0,2), (1,2)]},
-    '버렸': {'form': ('버리', '었'),'begend': [(0,2), (1,2)]},
+    # '만났': {'form': ('만나', '았'),'begend': [(0,2), (1,2)]},
+    # '드렸': {'form': ('드리', '었'),'begend': [(0,2), (1,2)]},
+    # '버렸': {'form': ('버리', '었'),'begend': [(0,2), (1,2)]},
+    # '달라졌': {'form': ('달라지', '었'),'begend': [(0,3), (2,3)]},  
+    # '지었': {'form': ('짓', '었'),'begend': [(0,1), (1,2)]},   
     '드려': {'form': ('드리', '어'),'begend': [(0,2), (1,2)]},
     '숨져': {'form': ('숨지', '어'),'begend': [(0,2), (1,2)]},
     '속여': {'form': ('속이', '어'),'begend': [(0,2), (1,2)]},
     '챙겨': {'form': ('챙기', '어'),'begend': [(0,2), (1,2)]},
-    '달라졌': {'form': ('달라지', '었'),'begend': [(0,3), (2,3)]},
+    
 
     '시켜도': {'form': ('시키', '어도'),'begend': [(0,2), (1,3)]}, 
     '시켜라': {'form': ('시키', '어라'),'begend': [(0,2), (1,3)]}, 
@@ -361,7 +377,7 @@ PREV_DICT = {
     '시켜서': {'form': ('시키', '어서'),'begend': [(0,2), (1,3)]}, 
     '딱딱해': {'form': ('딱딱하', '아'),'begend': [(0,3), (2,3)]},
     
-    '지었': {'form': ('짓', '었'),'begend': [(0,1), (1,2)]}, 
+    
     '지으면': {'form': ('짓', '으면'),'begend': [(0,1), (1,3)]}, 
     '걸어': {'form': ('걷', '어'),'begend': [(0,1), (1,2)]}, 
     '걸로': {'form': ('거', '로'),'begend': [(0,1), (1,2)]}, 
@@ -398,7 +414,7 @@ PREV_DICT = {
     '맞춰': {'form': ('맞추', '어'),'begend': [(0,2), (1,2)]},
     '나눠요': {'form': ('나누', '어요'),'begend': [(0,2), (1,3)]},
     '비겨': {'form': ('비기', '어'),'begend': [(0,2), (1,2)]},
-    '시켰': {'form': ('시키', '었'),'begend': [(0,2), (1,2)]},
+    # '시켰': {'form': ('시키', '었'),'begend': [(0,2), (1,2)]},
     '시켜': {'form': ('시키', '어'),'begend': [(0,2), (1,2)]},
     '지쳐': {'form': ('지치', '어'),'begend': [(0,2), (1,2)]},
     '붙여':{'form': ('붙이', '어'),'begend': [(0,2), (1,2)]},
@@ -406,7 +422,7 @@ PREV_DICT = {
     '걸까':{'form':('거', '이', 'ㄹ까'),'begend': [(0,1), (0,1), (0,2)]},
     '간다':{'form': ('가', 'ㄴ다'),'begend': [(0,1), (0,2)]},
     '가서':{'form': ('가', '아서'),'begend': [(0,1), (0,2)]},
-    '갔': {'form': ('가', '았'),'begend': [(0,1), (0,1)]},
+    # '갔': {'form': ('가', '았'),'begend': [(0,1), (0,1)]},
 
     '네겐': {'form': ('너', '에게', 'ㄴ'),'begend': [(0,1), (0,2), (1,2)]},
     '내겐': {'form': ('나', '에게', 'ㄴ'),'begend': [(0,1), (0,2), (1,2)]},    
