@@ -150,7 +150,7 @@ class ConvCommand(SimpleCommand):
                     except NotImplementedError as e:
                         sys.exit('NotImpementedError: {}'.format(e))
 
-    def tsv2json(self, args):
+    def tsv2json(self, args, ):
         # args.input_format: 'tsv'
         # args.output_format: 'json'
         # args.corpus_type (use this for output json): 'mp', 'ls', 'ne', ...
@@ -161,13 +161,13 @@ class ConvCommand(SimpleCommand):
         
         if args.spec is None:
             filename = args.filenames[0]
-            toks = filename.split('.')  # toks[-1] == 'tsv'
+            toks = filename.split('.')[:-1]  # toks[-1] == 'tsv'
         else:
            toks = args.spec.split('.')
        
         try:
-            tsv_spec = toks[-2]
-            tsv_annotation_level = toks[-3]
+            tsv_spec = toks[-1]
+            tsv_annotation_level = toks[-2]
         except IndexError:
             sys.exit('Specify input tsv format, for example, --spec unified.min')
 
@@ -186,8 +186,13 @@ class ConvCommand(SimpleCommand):
         with open(filename, encoding = 'utf-8') as file:
             reader = nikol.table.reader(file, format='unified.min.tsv')
             for document in reader:
-                getattr(document, 'make_{}_corpus'.format(args.corpus_type))()
-                print(document.json(indent=1))
+                try:
+                    getattr(document, 'make_{}_corpus'.format(args.corpus_type))()
+                except Exception as e:
+                    print(e)
+                    
+                if not args.valid:
+                    print(document.json(indent = args.json_indent))
         
 
 def main(argv=None):
