@@ -46,68 +46,69 @@ class BegEndClass(object):
         self._mp, self._mp_pos = mp['form'], mp['label']
         # print(self._begend_list, self._mp, self._word)
 
-        if (self._mp_pos in ['VA', 'XSA']) and (get_cv_list(self._mp)[-1] == 'ㅂ'):
-            cv_list = get_cv_list(self._mp)
-            mp_len = len(self._mp)+1
-            if (self._mp_list[1]['form'] == 'ㄴ') and (self._mp_list[1]['label'] == 'ETM'):
-                if self._word[mp_len-1] == '운':
-                    # print(self._mp_list)
-                    #update va
-                    self._begend_list.append((self._crt_idx, self._crt_idx+mp_len))
-                    self._begend_list.append((self._crt_idx+mp_len-1, self._crt_idx+mp_len)) #update etm index
-                    self._crt_idx += mp_len
-                    self._mp_list = self._mp_list[2:]
-                    self._word = self._word[(mp_len):]
-                else:
-                    pass
-            elif (self._mp_list[1]['form'] == '어') and (self._mp_list[1]['label'] in ['EC', 'EF']):
-                if self._word[mp_len-1] == '워':
+        if len(self._word) > len(self._mp):
+            if (self._mp_pos in ['VA', 'XSA']) and (get_cv_list(self._mp)[-1] == 'ㅂ'):
+                cv_list = get_cv_list(self._mp)
+                mp0_len, mp1_len = len(self._mp), len(self._mp_list[1]['form'])
+                if (self._mp_list[1]['form'].startswith('ㄴ')) and (self._mp_list[1]['label'].startswith('E')):
+                    # print(self._mp_list, self._word)
+                    if self._word[mp0_len] == '운':
+                        self._begend_list.append((self._crt_idx, self._crt_idx+mp0_len+1))
+                        self._begend_list.append((self._crt_idx+mp0_len, self._crt_idx+mp0_len+mp1_len)) #update etm index
+                        self._crt_idx += (mp0_len + mp1_len)
+                        self._mp_list = self._mp_list[2:]
+                        self._word = self._word[(mp0_len + mp1_len):]
+                    else:
+                        pass
+                elif (self._mp_list[1]['form'].startswith('어')) and (self._mp_list[1]['label'].startswith('E')):
+                    if self._word[mp0_len] == '워':
+                        self._begend_list.append((self._crt_idx, self._crt_idx+mp0_len+1))
+                        self._begend_list.append((self._crt_idx+mp0_len, self._crt_idx+mp0_len+mp1_len)) #update etm index
+                        self._crt_idx += (mp0_len + mp1_len)
+                        self._mp_list = self._mp_list[2:]
+                        self._word = self._word[(mp0_len + mp1_len):]
+                    else:
+                        pass
+                elif (self._mp_list[1]['form'] == 'ㄹ') and (self._mp_list[1]['label'] == 'ETM'):
+                    if self._word[mp0_len] == '울':
+                        self._begend_list.append((self._crt_idx, self._crt_idx+mp0_len+1))
+                        self._begend_list.append((self._crt_idx+mp0_len, self._crt_idx+mp0_len+mp1_len)) #update etm index
+                        self._crt_idx += (mp0_len + mp1_len)
+                        self._mp_list = self._mp_list[2:]
+                        self._word = self._word[(mp0_len + mp1_len):]
+                    else:
+                        pass
+                elif (self._mp_list[1]['form'] == '었') and (self._mp_list[1]['label'] == 'EP'):
+                    if self._word[mp0_len] == '웠':
+                        self._begend_list.append((self._crt_idx, self._crt_idx+mp0_len+1))
+                        self._begend_list.append((self._crt_idx+mp0_len, self._crt_idx+mp0_len+mp1_len)) #update etm index
+                        self._crt_idx += (mp0_len + mp1_len)
+                        self._mp_list = self._mp_list[2:]
+                        self._word = self._word[(mp0_len + mp1_len):]
+                    else:
+                        pass                            
 
-                    self._begend_list.append((self._crt_idx, self._crt_idx+mp_len))
-                    self._begend_list.append((self._crt_idx+mp_len-1, self._crt_idx+mp_len)) #update etm index
-                    self._crt_idx += mp_len
-                    self._mp_list = self._mp_list[2:]
-                    self._word = self._word[(mp_len):]
-                else:
-                    pass
-            elif (self._mp_list[1]['form'] == 'ㄹ') and (self._mp_list[1]['label'] == 'ETM'):
-                if self._word[mp_len-1] == '울':
-                    # print(self._mp_list)
-                    #update va
-                    self._begend_list.append((self._crt_idx, self._crt_idx+mp_len))
-                    self._begend_list.append((self._crt_idx+mp_len-1, self._crt_idx+mp_len)) #update etm index
-                    self._crt_idx += mp_len
-                    self._mp_list = self._mp_list[2:]
-                    self._word = self._word[(mp_len):]
-                else:
-                    pass
-            elif (self._mp_list[1]['form'] == '었') and (self._mp_list[1]['label'] == 'EP'):
-                if self._word[mp_len-1] == '웠':
-                    # print(self._mp_list)
-                    #update va
-                    self._begend_list.append((self._crt_idx, self._crt_idx+mp_len))
-                    self._begend_list.append((self._crt_idx+mp_len-1, self._crt_idx+mp_len)) #update etm index
-                    self._crt_idx += mp_len
-                    self._mp_list = self._mp_list[2:]
-                    self._word = self._word[(mp_len):]
-                else:
-                    pass                            
-                    
         if not self._mp_list:
             self._idx += 1
             return
         else:
             self._mp, self._mp_pos = self._mp_list[0]['form'], self._mp_list[0]['label']
 
+        #contracted
         if len(self._mp_list) > 1:
+            # tense                 
             if (self._mp_pos in ['VV','VX','XSV']) and ((self._mp_list[1]['label'] in ['EP']) and (self._mp_list[1]['form'] in ['았', '었'])):
                 if (get_cv_list(self._mp)[-1] in ['ㅏ', 'ㅐ', 'ㅓ', 'ㅔ', 'ㅣ', 'ㅡ', 'ㅗ', 'ㅜ','ㅎ']) and self._mp != '하':
                     self._begend_list.append((self._crt_idx, self._crt_idx+len(self._mp)))
+                    
                     if (get_cv_list(self._mp)[-1] == 'ㅎ') and get_cv_list(self._word[len(self._mp)])[-2:] != ['ㅘ', 'ㅆ']:
+                        # print('case1', self.mp_list, self.word)
+                        
                         self._crt_idx += len(self._mp)+1
                         self._begend_list.append((self._crt_idx-1, self._crt_idx))
                         self._word = self._word[len(self._mp)+1:]
                     else:
+                        # print('case2', self.mp_list, self.word)
                         self._crt_idx += len(self._mp)
                         self._begend_list.append((self._crt_idx-1, self._crt_idx))
                         self._word = self._word[len(self._mp):]
@@ -115,6 +116,22 @@ class BegEndClass(object):
                     self._mp_list = self._mp_list[2:]
                 else:
                     pass
+
+            # ending
+            if (self._mp_pos == 'VCP' and self._mp == '이') and (self._mp_list[1]['form'] == '라는' and self._mp_list[1]['label'] == 'ETM'):
+                if self._word[:2] == '라는':
+                    self._begend_list.append((self._crt_idx, self._crt_idx+1))
+                    self._begend_list.append((self._crt_idx, self._crt_idx+2))
+                    self._word = self._word[2:]
+                    self._crt_idx += 2
+                    self._mp_list = self._mp_list[2:]
+
+
+        if not self._mp_list:
+            self._idx += 1
+            return
+        else:
+            self._mp, self._mp_pos = self._mp_list[0]['form'], self._mp_list[0]['label']
 
         if self._word[:3] in PREV_DICT.keys():
             # print('case1')
@@ -334,6 +351,7 @@ cho_ls = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 
 jung_ls = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ']
 # jong list
 jong_ls = [' ', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']
+
 
 ETC_DICT={
     '하':{'form':('하',),'begend': (0,1), 'label':'XSA'},
