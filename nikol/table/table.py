@@ -19,6 +19,18 @@ class Row:
     def __repr__(self):
         return repr(self.__dict__)
 
+    def neighborAt(self, relative_index):
+        """
+        :param relative_index: eg) +1 for the next row, -1 for the previous row. 
+        """
+        try:
+            neighbor = self.sentence._rows[self._word_id - 1 + relative_index]
+        except:
+            print('ERROR', relative_index, self)
+
+        return neighbor
+        
+
 class UnifiedMinRow(Row):
     def __init__(self, 
                 fields, 
