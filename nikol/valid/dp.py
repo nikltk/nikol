@@ -148,7 +148,7 @@ def table(document, spec='min', valid=False):
                 ]
             elif spec == 'min':
                 fields = [
-                    word.gid,
+                    '{}_{:03d}'.format(sent.fwid, word.id),  # = word.gid
                     str(word.id),
                     dp.word_form,
                     dp.label,
