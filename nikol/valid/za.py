@@ -113,10 +113,11 @@ def valid_za(document):
         #
         if subj.sentence_id != '-1':
             s = document.getSentenceById(subj.sentence_id)
-            if s.form[subj.slice] != subj.form:
+            if s.form[subj.slice].strip() == '':
+                za._error.append('ErrorZAAntecedentFormBeginEnd();')
+            elif s.form[subj.slice] != subj.form:
                 if util.form_match(subj.form, s.form[subj.slice]): continue
                 za._error.append('ErrorZAAntecedentFormBeginEnd({})'.format(s.form[subj.slice]))
-
 
 def table(document, spec='min', valid=False):
     """
