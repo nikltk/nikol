@@ -47,7 +47,14 @@ def valid_za(document):
         # check predicate form and begin:end
         #
         sentence = document.getSentenceById(pred.sentence_id)
-        word = sentence.wordAt(pred.begin)
+        try:
+            word = sentence.wordAt(pred.begin)
+        except:
+            # if no word at pred.begin (i.e. if whitespace at pred.begin)
+            # then choose the left word
+            word = sentence.wordAt(pred.begin - 1)
+            za._error.append('ErrorZAPredicateFormBeginEnd();')
+            
         word._za = za
 
         if sentence.form[pred.slice] != pred.form:
@@ -56,7 +63,7 @@ def valid_za(document):
         #
         # check predicate form
         #
-        word = sentence.wordAt(pred.begin)
+
         if pred.form != word.form:
             
             if re.search('[와과]', word.form) and \
