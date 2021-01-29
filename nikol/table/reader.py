@@ -54,13 +54,34 @@ class NikolMinTableReader:
             sid, wid = fields[0].split('_')
             corpusid, dnum, pnum, snum = sid.split('-')
             
-            if corpusid.startswith('N'):
-                docid = '{}.{}'.format(corpusid, int(dnum))
-                sentid = '{}.{}.{}.{}'.format(corpusid, int(dnum), int(pnum), int(snum))
-            elif corpusid.startswith('S'):
-                docid = corpusid
-                sentid = '{}.{}'.format(corpusid, int(snum))
 
+            # WARNING:
+            #
+            # The document/sentence id format (for 2019 spoken annotated corpus) is deprecated.
+            #
+            # - (2019 spoken annotated corpus)
+            #   - document id example: SARW180000004
+            #   - sentence id example: SARW180000004.5
+            #
+            # - (2020 version)
+            #   - document id example: SARW180000004.1
+            #   - sentence id example: SARW180000004.1.1.5
+            #
+            #
+            # if corpusid.startswith('N'):
+            #     docid = '{}.{}'.format(corpusid, int(dnum))
+            #     sentid = '{}.{}.{}.{}'.format(corpusid, int(dnum), int(pnum), int(snum))
+            # elif corpusid.startswith('S'):
+            #     docid = corpusid
+            #     sentid = '{}.{}'.format(corpusid, int(snum))
+            
+            docid = '{}.{}'.format(corpusid, int(dnum))
+            sentid = '{}.{}.{}.{}'.format(corpusid, int(dnum), int(pnum), int(snum))
+            
+
+
+
+            
             # for spoken corpus
             # fill empty fields (dp_label, dp_head, sr_pred, sr_args)
             if len(fields) == 8 : fields += [None, None, None, None] 
@@ -71,7 +92,7 @@ class NikolMinTableReader:
                 # first row of the data file
                 # first document, first sentence
                 sentnum = 1
-                doc = Document(id=docid, sentence=[])
+                doc = Document(id=docid, sentence=[], metadata={})
                 sent = Sentence(parent=doc, num=sentnum, id=sentid, sentrows=[])
                 beg = 0
                 end = beg + len(fields[2])
