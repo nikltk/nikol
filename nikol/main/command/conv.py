@@ -10,7 +10,7 @@ example:
 
   # convert unified.min.tsv to single annotation level json 
   nikol conv --ls NWRW1800000021-0003.unified.min.tsv
-  nikol conv --ls NWRW1800000021-0003.unified.min.tsv -o NWRW1800000021-0003.json
+  nikol conv --ls --valid NWRW1800000021-0003.unified.min.tsv  # print only errors
 """
 
 
@@ -37,12 +37,14 @@ class ConvCommand(SimpleCommand):
     def __init__(self, app = None, name = 'conv'):
         super().__init__(app, name, epilog = __epilog__)
         
-        self.parser.add_argument('filenames', type=str, nargs='*', help='input filenames or a directory')
+        self.parser.add_argument('filenames', type=str, nargs='*',
+                                 help='input filenames or a directory')
         self.parser.add_argument('-f', '--from', type=str, dest='input_format',
                                  help='input format: json, tsv')
         self.parser.add_argument('-t', '--to', type=str, dest='output_format',
                                  help='output format: json, tsv')
-        self.parser.add_argument('-o', '--output', type=str, dest='output_filename', help='output filename')
+        self.parser.add_argument('-o', '--output', type=str, dest='output_filename',
+                                 help='output filename')
         self.parser.add_argument('-v', '--valid', '--verbose', dest='valid', action='store_true',
                                  help='validation (TSV)')
 
@@ -56,13 +58,20 @@ class ConvCommand(SimpleCommand):
                                       help='raw corpus sentence (JSON)')
         annotation_group.add_argument('--word', action='store_const', const='word', dest='corpus_type',
                                       help='raw corpus word (JSON)')
-        annotation_group.add_argument('--mp', action='store_const', const='mp', dest='corpus_type', help='MP corpus (JSON)')
-        annotation_group.add_argument('--ls', action='store_const', const='ls', dest='corpus_type', help='LS corpus (JSON)')
-        annotation_group.add_argument('--ne', action='store_const', const='ne', dest='corpus_type', help='NE corpus (JSON)')
-        annotation_group.add_argument('--za', action='store_const', const='za', dest='corpus_type', help='ZA corpus (JSON)')
-        annotation_group.add_argument('--cr', action='store_const', const='cr', dest='corpus_type', help='CR corpus (JSON)')
-        annotation_group.add_argument('--dp', action='store_const', const='dp', dest='corpus_type', help='DP corpus (JSON)')
-        annotation_group.add_argument('--sr', action='store_const', const='sr', dest='corpus_type', help='SR corpus (JSON)')
+        annotation_group.add_argument('--mp', action='store_const', const='mp', dest='corpus_type',
+                                      help='MP corpus (JSON)')
+        annotation_group.add_argument('--ls', action='store_const', const='ls', dest='corpus_type',
+                                      help='LS corpus (JSON)')
+        annotation_group.add_argument('--ne', action='store_const', const='ne', dest='corpus_type',
+                                      help='NE corpus (JSON)')
+        annotation_group.add_argument('--za', action='store_const', const='za', dest='corpus_type',
+                                      help='ZA corpus (JSON)')
+        annotation_group.add_argument('--cr', action='store_const', const='cr', dest='corpus_type',
+                                      help='CR corpus (JSON)')
+        annotation_group.add_argument('--dp', action='store_const', const='dp', dest='corpus_type',
+                                      help='DP corpus (JSON)')
+        annotation_group.add_argument('--sr', action='store_const', const='sr', dest='corpus_type',
+                                      help='SR corpus (JSON)')
 
         spec_group = self.parser.add_mutually_exclusive_group()
         spec_group.add_argument('-s', '--spec', type=str, dest='spec', #default='min',
@@ -74,13 +83,18 @@ class ConvCommand(SimpleCommand):
 
 
         # json options
-        self.parser.add_argument('--json-indent', type=int, dest='json_indent', help='json dump indent')
+        self.parser.add_argument('--json-indent', type=int, dest='json_indent',
+                                 help='json dump indent')
 
     def run(self, argv):
         args = self.parser.parse_args(argv)
         
         #
-        # input files
+        # input files: args.filenames
+        #
+        # (1) a file 
+        # (2) files (wildcard)
+        # (3) a directory => list files
         #
         if args.filenames == []:
             sys.exit('Specify filename(s) or a directory. Trye -h form more information.')
@@ -88,15 +102,20 @@ class ConvCommand(SimpleCommand):
             if os.path.isfile(args.filenames[0]):
                 pass
             else:
+                # if len(args.filenames) == 1 and args.filenames[0] is a directory:
+                # reassign args.filenames = list of filenames
                 path = args.filenames[0]
                 args.filenames = []
                 for dirpath, dirnames, filenames in os.walk(path):
+                    dirnames.sort()
+                    filenames.sort()
                     for filename in filenames:
                         args.filenames.append(os.path.join(dirpath, filename))
         else:
             for filename in args.filenames:
                 if not os.path.isfile(filename):
                     sys.exit('Specify filenames or a directory. Do not specify directories.') 
+                    
         #
         # guess input format from filenames[0]
         #
@@ -187,9 +206,14 @@ class ConvCommand(SimpleCommand):
             reader = nikol.table.reader(file, format='unified.min.tsv')
             for document in reader:
                 try:
-                    getattr(document, 'make_{}_corpus'.format(args.corpus_type))()
+                    getattr(document, 'make_{}_corpus'.format(args.corpus_type))(valid = args.valid)
                 except Exception as e:
-                    print(e)
+                    if args.valid:
+                        print(e)
+                    else:
+                        print(e)
+                        #pass
+                    #sys.exit(e)
                     
                 if not args.valid:
                     print(document.json(indent = args.json_indent))

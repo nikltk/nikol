@@ -45,9 +45,9 @@ class Document(nikl.Document):
         for s in self.sentence_list:
             s.process_morpheme()
 
-    def make_ls_corpus(self):
+    def make_ls_corpus(self, valid = False):
         for s in self.sentence_list:
-            s.process_wsd_and_morpheme()
+            s.process_wsd_and_morpheme(valid = valid)
 
     def make_ne_corpus(self):
         for s in self.sentence_list:
@@ -129,8 +129,8 @@ class Sentence(nikl.Sentence):
 
         return self.WSD
             
-    def process_wsd_and_morpheme(self):
-        self.morpheme, self.WSD = WSD.process_sentrows(self._rows)
+    def process_wsd_and_morpheme(self, valid = False):
+        self.morpheme, self.WSD = WSD.process_sentrows(self._rows, valid = valid)
 
     @property 
     def ne_list(self):
@@ -328,21 +328,21 @@ class WSD(nikl.WSD):
         
 
     @classmethod
-    def process_sentrows(cls, sentrows, morpheme_as_wsd=False):
+    def process_sentrows(cls, sentrows, morpheme_as_wsd = False, valid = False):
         """
         :param sentrows: list of rows in the sentence. see nikol.table.table module.
         :param morpheme_as_wsd: if True, morphemes are coerced to WSDs.
         """
         if type(sentrows[0]).__name__ == 'UnifiedMinRow':
             if morpheme_as_wsd:
-                return WSD.process_min_sentrows_ls(sentrows)
+                return WSD.process_min_sentrows_ls(sentrows, valid = valid)
             else:
-                return WSD.process_min_sentrows_wsd_and_morpheme(sentrows)
+                return WSD.process_min_sentrows_wsd_and_morpheme(sentrows, valid = valid)
         else:
             raise NotImplementedError
 
     @classmethod
-    def process_min_sentrows_ls(cls, sentrows):
+    def process_min_sentrows_ls(cls, sentrows, valid = False):
         """
         :param sentrows: list of nikol.table.table.UnifiedMinRow
         :return: list of WSD. morphemes are coerced to WSDs with sense_id = 'None'.
@@ -382,17 +382,34 @@ class WSD(nikl.WSD):
                         if ls.sense_id is not None:
                             # if ls is a WSD, try to compute begin:end
                             ind = row._form.find(ls.word)
-                            if ind != -1:
+                            indr = row._form.rfind(ls.word)
+                            if ind != -1 and ind == indr:
+                                #
+                                # if ls.form is found in word.form:
+                                #
                                 ls.begin = row.word.begin + ind
                                 ls.end = ls.begin + len(ls.word)
                             else:
                                 # CRITICAL ERROR:
                                 # need to compute begin:end
-                                pass
-                                #print("begend('{}', {}) # => {}".format( row.word.form, mps, e))
+                                if valid:
+                                    raise Exception("# ErrorWSDBeginEnd(); ls.str: {} word.form: {} row._ls: {} sentence.form: {} sentence.id: {}\nbegend('{}', {}) # => {}"
+                                                    .format(ls.str, row.word.form, row._ls,
+                                                            row.sentence.form, row.sentence.id,
+                                                            row.word.form, mps, e))
+                                else:
+                                    # WARNING!!!
+                                    #
+                                    # TODO: rewrite this! (or better to improve nikol.valid.begend())
+                                    #
+                                    #
+                                    # if ls.form is not found in word.form:
+                                    #
+                                    ls.begin = row.word.begin
+                                    ls.end = ls.begin + len(ls.word)
                         else:
                             # if sense_id is None (if ls is not a WSD), just pass it
-                            # no need to compute begin:end
+                            # no need to compute begin:end for a Morpheme
                             pass
                 else:
                     # if there is no WSD in the word (row), pass it
@@ -405,12 +422,12 @@ class WSD(nikl.WSD):
         return sent_lss
 
     @classmethod
-    def process_min_sentrows_wsd_and_morpheme(cls, sentrows):
+    def process_min_sentrows_wsd_and_morpheme(cls, sentrows, valid = False):
         """
         :param sentrows: list of nikol.table.table.UnifiedMinRow
         :return: list of morphemes, list of WSDs.
         """
-        lss = cls.process_min_sentrows_ls(sentrows)
+        lss = cls.process_min_sentrows_ls(sentrows, valid = valid)
 
         wsds = []
         morphemes = []
