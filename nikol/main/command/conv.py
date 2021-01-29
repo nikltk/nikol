@@ -10,7 +10,7 @@ example:
 
   # convert unified.min.tsv to single annotation level json 
   nikol conv --ls NWRW1800000021-0003.unified.min.tsv
-  nikol conv --ls NWRW1800000021-0003.unified.min.tsv -o NWRW1800000021-0003.json
+  nikol conv --ls --valid NWRW1800000021-0003.unified.min.tsv  # print only errors
 """
 
 
@@ -206,9 +206,14 @@ class ConvCommand(SimpleCommand):
             reader = nikol.table.reader(file, format='unified.min.tsv')
             for document in reader:
                 try:
-                    getattr(document, 'make_{}_corpus'.format(args.corpus_type))()
+                    getattr(document, 'make_{}_corpus'.format(args.corpus_type))(valid = args.valid)
                 except Exception as e:
-                    print(e)
+                    if args.valid:
+                        print(e)
+                    else:
+                        print(e)
+                        #pass
+                    #sys.exit(e)
                     
                 if not args.valid:
                     print(document.json(indent = args.json_indent))
