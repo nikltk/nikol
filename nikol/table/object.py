@@ -33,12 +33,12 @@ class Document(nikl.Document):
 
         return self.ZA
         
-    def process_za(self):
+    def process_za(self, valid = False):
         row1 = self.sentence_list[0]._rows[0]
         if row1._za_pred is None and row1._za_ante is None:
             self.ZA = []
         else:
-            self.ZA = ZA.process_docrows(self) 
+            self.ZA = ZA.process_docrows(self, valid = valid) 
 
 
     def make_mp_corpus(self):
@@ -53,8 +53,8 @@ class Document(nikl.Document):
         for s in self.sentence_list:
             s.process_ne(valid = valid)
 
-    def make_za_corpus(self):
-        self.process_za()
+    def make_za_corpus(self, valid = False):
+        self.process_za(valid = valid)
  
     def make_dp_corpus(self):
         for s in self.sentence_list:
@@ -542,7 +542,7 @@ class NE(nikl.NE):
             raise ValueError("{} at '{}' ({})".format(e, row._ne, row._gid))
             
         #
-        # TODO: compute begin and end
+        # compute begin and end
         #
         toks = form.split()
         n = len(toks)
@@ -854,8 +854,8 @@ class ZA(nikl.ZA):
         self._row = row
 
     @classmethod
-    def from_min(cls, row, parent: Document = None):
-        pred_str = row._za_pred
+    def from_min(cls, row, parent: Document = None, valid = False):
+        pred_form = row._za_pred
         ante_str = row._za_ante
         doc = row.document
 
@@ -865,23 +865,28 @@ class ZA(nikl.ZA):
         #
         # predicate
         #
-        # TODO: begin, end
+        # compute begin, end
         pred_word = row.word
-        beg = pred_word.form.find(pred_str)
-        if beg == -1:
-            pred_begin = pred_word.begin
-            pred_end = pred_word.end
-        else:
+        beg = pred_word.form.find(pred_form)
+        if beg != -1:
             pred_begin = pred_word.begin + beg
-            pred_end = pred_begin + len(pred_str)
+            pred_end = pred_begin + len(pred_form)
+        else:
+            ind = row.sentence.form.find(pred_form)
+            indr = row.sentence.form.rfind(pred_form)
+            if ind == indr:
+                pred_begin = ind
+                pred_end = pred_begin + len(pred_form)
+            else:
+                raise Exception('ZA', pred_form, pred_word.form, beg, row)
         
-        za.predicate = nikl.ZAPredicate(parent=za, form=pred_str, sentence_id=row.sentence.id,
+        za.predicate = nikl.ZAPredicate(parent=za, form=pred_form, sentence_id=row.sentence.id,
                                         begin=pred_begin, end=pred_end)
 
         #
         # antecendent
         #
-        za.antecedent = [ ZAAntecedent.from_min(row=row, parent=za) ]
+        za.antecedent = [ ZAAntecedent.from_min(row=row, parent=za, valid = valid) ]
 
         return za
 
@@ -894,14 +899,14 @@ class ZA(nikl.ZA):
         pass
 
     @classmethod
-    def process_docrows(cls, document):
+    def process_docrows(cls, document, valid = False):
         if type(document.sentence_list[0]._rows[0]).__name__ == 'UnifiedMinRow':
-            return ZA.process_min_docrows(document)
+            return ZA.process_min_docrows(document, valid = valid)
         else:
             raise NotImplementedError
 
     @classmethod
-    def process_min_docrows(cls, document):
+    def process_min_docrows(cls, document, valid = False):
         # if za columns do not exist
         #if docrows[0]._za_pred is None and docrows[0]._za_ante is None:
         #    return None
@@ -909,7 +914,7 @@ class ZA(nikl.ZA):
         zas = []
         for row in document._rows:
             if row._za_pred != '' or row._za_ante != '':
-                z = ZA.from_min(row, parent=document)
+                z = ZA.from_min(row, parent=document, valid = False)
                 row.za = z
                 zas.append(z)
             else:
@@ -929,7 +934,7 @@ class ZAAntecedent(nikl.ZAAntecedent):
         super().__init__(parent=parent, type=type, form=form, sentence_id=sentence_id, begin=begin, end=end)
  
     @classmethod
-    def from_min(cls, row, parent: ZA):
+    def from_min(cls, row, parent: ZA, valid = False):
         ante_str = row._za_ante
         doc = row.document
 
@@ -952,15 +957,19 @@ class ZAAntecedent(nikl.ZAAntecedent):
             beg = ante_word.form.find(ante_form)
 
             #
-            # TODO: compute begin and end
+            # compute begin and end
             #
-            if beg == -1 :
-                #print('ERROR', ante_form, ante_word, ante_word._row.morphemes)
-                ante_begin = ante_word.begin
-                ante_end = ante_word.end
-            else:    
+            if beg != -1:
                 ante_begin = ante_word.begin + beg
                 ante_end = ante_begin + len(ante_form)
+            else:
+                try:
+                    b, e = NE.begend(ante_word._row._form, ante_word._row._mp, ante_form)
+                    ante_begin = ante_word.begin + b
+                    ante_end = ante_word.begin + e
+                except:
+                    raise Exception('ZAAntecedent.from_min', row._gid, row._form, ante_str, ante_word.form, ante_word._row._mp)
+
 
         return cls(parent=parent, form=ante_form, type='subject', sentence_id=ante_sent_id,
                    begin=ante_begin, end=ante_end) 
