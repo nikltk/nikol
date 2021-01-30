@@ -25,8 +25,8 @@ class Row:
         """
         try:
             neighbor = self.sentence._rows[self._word_id - 1 + relative_index]
-        except:
-            print('ERROR', relative_index, self)
+        except IndexError:
+            raise IndexError('list index out of range')
 
         return neighbor
         
@@ -133,4 +133,4 @@ class UnifiedMinRow(Row):
     def za(self, value):
         self.__za = value
 
-      
+

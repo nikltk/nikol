@@ -49,9 +49,9 @@ class Document(nikl.Document):
         for s in self.sentence_list:
             s.process_wsd_and_morpheme(valid = valid)
 
-    def make_ne_corpus(self):
+    def make_ne_corpus(self, valid = False):
         for s in self.sentence_list:
-            s.process_ne()
+            s.process_ne(valid = valid)
 
     def make_za_corpus(self):
         self.process_za()
@@ -139,8 +139,8 @@ class Sentence(nikl.Sentence):
 
         return self.NE
 
-    def process_ne(self):
-        self.NE = NE.process_sentrows(self._rows)
+    def process_ne(self, valid = False):
+        self.NE = NE.process_sentrows(self._rows, valid = valid)
 
     @property
     def dp_list(self):
@@ -483,34 +483,56 @@ class NE(nikl.NE):
         return {'form' : form, 'label' : label, 'begin_within_word' : beg }
         
     @classmethod
-    def begend(cls, a, b):
-        return 0, 1
+    def begend(cls, wordform, morphemes, subwordform):
+        """
+        eg) wordform = '연구교숩니다'
+            morphemes = '연구/NNG + 교수/NNG + 이/VCP + ㅂ니다/EF + ./SF'
+            subwordform = '연구교수'
+        
+        Or morphemes = list of dict {'form', 'label'}
+        """
 
-                
-        if beg == -1:
-            ind = row._mp.find(form)
-            if ind != -1:
-                # okay. exact match.
-                begin = row.word.begin + ind
-                end = begin + len(form)
-                pass
+        if type(morphemes) is str:
+            mps = [Morpheme.parse_mp_str(mp) for mp in morphemes.split(' + ')]
+        elif type(morphemes) is list:
+            mps = morphemes
+        
+
+
+        mps_begend = nikol.valid.begend(wordform, mps)
+        mp_matches = [mp for mp in mps_begend if mp['form'] == subwordform]
+        if len(mp_matches) == 1:
+            mp_matched = mp_matches[0]
+            begin = mp_matched['begin']
+            end = mp_matched['end']
+        elif len(mp_matches) == 0:
+            finds = []
+            head = ''
+            tail = subwordform
+            for mp in mps_begend:
+                b = tail.find(mp['form'])
+                if b != -1:
+                    finds.append(mp['begin'])
+                    head += mp['form']
+                    tail = tail[b:]
+
+            if head == subwordform:
+                begin = finds[0]
+                end = begin + len(head)
             else:
-                parsed_mps = [Morpheme.parse_mp_str(s) for s in row._mp.split(' + ')]
-                #print('ERROR', nikol.valid.begend(row._form, parsed_mps))
-                joined_mp_forms = ''.join([parsed['form'] for parsed in parsed_mps])
-                if joined_mp_forms.find(form) > -1:
-                    pass
-                else: 
-                    #print('ERROR', row._gid, ne_str) #, form,  label, beg, row)
-                    raise Exception(ne_str, form, label, beg, row)
-
-
+                raise Exception('NE.begend', subwordform, finds, mps)
+            
+        else:
+            raise Exception('NE.begend', wordform, mps, subwordform)
+ 
+        return begin, end
 
     @classmethod
     def from_min(cls,
                  ne_str: str,
                  id: int,
-                 row):
+                 row,
+                 valid = False):
         try:
             parsed = NE.parse_ne_str(ne_str)
             form = parsed['form']
@@ -524,40 +546,67 @@ class NE(nikl.NE):
         #
         toks = form.split()
         n = len(toks)
+        try:
+            last_word = row.neighborAt(n-1).word
+        except:
+            last_word = row.word
+            
         if begin_within_word is not None:
+            # eg)
+            # ne_str = '이/PS@(0)'
+            # word.form = '이감독이라고' 
+            #
             begin = row.word.begin + begin_within_word
             end = begin + len(form) 
-            if form != row.sentence.form[begin:end]:
-                _, e = cls.begend(toks[n-1], row.neighborAt(n-1))
-                begin = row.word.begin + b
-                end = row.neighborAt(n-1).word.begin + e
         else:
             if n == 1:
                 # single word NE
-                b, e = cls.begend(form, row)
-                begin = row.word.begin + b
-                end = row.word.begin + e
+                b = row._form.find(form)
+                if b != -1:
+                    begin = row.word.begin + b
+                    end = begin + len(form)
+                else:
+                    try:
+                        b, e = cls.begend(row._form, row._mp, form)
+                        begin = row.word.begin + b
+                        end = row.word.begin + e
+                    except Exception as e:
+                        raise Exception('NE.from_min:single_word', row._gid, row._form, row._ne,
+                                        ne_str, row._mp, e)
+                        
+                   
             else:
                 # multiword NE
-                b, _ = cls.begend(toks[0], row)
-                _, e = cls.begend(toks[n-1], row.neighborAt(n-1))
-                begin = row.word.begin + b
-                end = row.neighborAt(n-1).word.begin + e
-
-
-
-
+                ind = row.sentence.form.find(form)
+                indr = row.sentence.form.rfind(form)
+                if (ind == indr
+                    and row.word.id == row.sentence.wordAt(ind).id):
+                    begin = ind
+                    end = begin + len(form)
+                else:
+                    b = row._form.find(toks[0])
+                    begin = row.word.begin + b
+                    end = last_word.begin + last_word.form.find(toks[n-1]) + len(toks[n-1])
+                    if form != row.sentence.form[begin:end]:
+                        try:
+                            b, _ = cls.begend(row._form, row._mp, toks[0])
+                            _, e = cls.begend(last_word.form, last_word._row._mp, toks[n-1])
+                            begin = row.word.begin + b
+                            end = last_word.begin + e
+                        except:
+                            raise Exception('NE.from_min:multiword', row._gid, row._form, ne_str, begin, end, row.sentence.form)
+            
         return cls(parent = row.sentence, id = id, form = form, label = label, begin = begin, end = end, row = row) 
 
     @classmethod
-    def process_sentrows(cls, sentrows):
+    def process_sentrows(cls, sentrows, valid = False):
         if type(sentrows[0]).__name__ == 'UnifiedMinRow':
-            return NE.process_min_sentrows(sentrows)
+            return NE.process_min_sentrows(sentrows, valid = valid)
         else:
             raise NotImplementedError
 
     @classmethod
-    def process_min_sentrows(cls, sentrows):
+    def process_min_sentrows(cls, sentrows, valid = False):
         nes = []
         ne_id = 0
         for row in sentrows:
@@ -568,7 +617,7 @@ class NE(nikl.NE):
             for ne_str in row._ne.split(' + '):
                 if ne_str == '&' : continue
                 ne_id += 1
-                n = cls.from_min(ne_str, id=ne_id, row=row)
+                n = cls.from_min(ne_str, id = ne_id, row = row, valid = valid)
                 row_nes.append(n)
 
             row.nes = row_nes
