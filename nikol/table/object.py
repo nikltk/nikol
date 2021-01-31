@@ -62,7 +62,7 @@ class Document(nikl.Document):
 
     def make_sr_corpus(self, valid = False):
         for s in self.sentence_list:
-            s.process_srl()
+            s.process_srl(valid = valid)
 
 class Sentence(nikl.Sentence):
 
@@ -815,7 +815,6 @@ class SRLArgument(nikl.SRLArgument):
         w1id = parsed['begin_word_id']
         w2id = parsed['end_word_id']
 
-
         w1 = sent.word_list[w1id - 1]
         w2 = sent.word_list[w2id - 1]
         if w1id == w2id:
@@ -833,9 +832,6 @@ class SRLArgument(nikl.SRLArgument):
                     begin = w1.begin + b
                     end = w1.begin + e
                 except Exception as err:
-                    #if last_word_form.endswith('것') :
-                    #    begin = w1.begin
-                    #    end = w1.begin + len(last_word_form)
                     if len(last_word_form) > 1 and w2.form.startswith(last_word_form[:-1]):
                         decomp1 = nikol.valid.util.decompose(last_word_form[-1])
                         decomp2 = nikol.valid.util.decompose(w2.form[len(last_word_form)-1])
@@ -843,23 +839,25 @@ class SRLArgument(nikl.SRLArgument):
                             begin = w1.begin 
                             end = w2.begin + len(last_word_form)
                         else:
-                            if not valid :
-                                begin = w1.begin
-                                end = w2.end
-                                print('ERROR', row._gid, row._form, row._sr_pred, row._sr_args,
-                                      '# {} => {} ({})'.format(sr_arg_str, w2.form, w2._row._mp), sep="\t")
-                            else:
-                                raise Exception('SRLArgument.from_min:singleword', row._gid, sr_arg_str, w2.form, w2._row._mp)
-                    else:
-                        if not valid :
+                            #
+                            # rough guess. possibly bad guess
+                            #
                             begin = w1.begin
-                            end = w2.end
-                            print('ERROR', row._gid, row._form, row._sr_pred, row._sr_args,
+                            end = w2.begin + len(last_word_form)
+                            if valid :
+                                print('ERROR_SRLArgument.from_min:single_word1', row._gid, row._form, row._sr_pred, row._sr_args,
+                                      '# {} => {} ({})'.format(sr_arg_str, w2.form, w2._row._mp), sep="\t")
+                                #raise Exception('SRLArgument.from_min:singleword', row._gid, sr_arg_str, w2.form, w2._row._mp)
+                    else:
+                        #
+                        # rough guess. possibly bad guess
+                        #
+                        begin = w1.begin
+                        end = w2.begin + len(last_word_form)
+                        if valid:
+                            print('ERROR_SRLArgument.from_min:single_word2', row._gid, row._form, row._sr_pred, row._sr_args,
                                   '# {} => {} ({})'.format(sr_arg_str, w2.form, w2._row._mp), sep="\t")
-
-                            # print(row._gid, sr_arg_str, w2.form, w2._row._mp)
-                        else:
-                            raise Exception('SRLArgument.from_min:single_word', row._gid, sr_arg_str, w1.form, w1._row._mp)
+                            #raise Exception('SRLArgument.from_min:single_word2', row._gid, sr_arg_str, w1.form, w1._row._mp)
         else:
             # multiword argument
             w2 = sent.word_list[w2id - 1]
@@ -874,32 +872,27 @@ class SRLArgument(nikl.SRLArgument):
                 if decomp1[:-1] == decomp2[:-1]:
                     end = w2.begin + len(last_word_form)
                 else:
-                    if not valid :
-                        begin = w1.begin
-                        end = w2.end
-                        print('ERROR', row._gid, row._form, row._sr_pred, row._sr_args,
+                    #
+                    # rough guess. possibly bad guess.
+                    #
+                    end = w2.begin + len(last_word_form)
+                    if valid :
+                        print('ERROR_SRLArgument.from_min:multiword1', row._gid, row._form, row._sr_pred, row._sr_args,
                               '# {} => {} ({})'.format(sr_arg_str, w2.form, w2._row._mp), sep="\t")
-                       
-                        #print(row._gid, sr_arg_str, w2.form, w2._row._mp)
-                    else:
-                        raise Exception('SRLArgument.from_min:multiword', row._gid, sr_arg_str, w2.form, w2._row._mp)
+                        #raise Exception('SRLArgument.from_min:multiword1', row._gid, sr_arg_str, w2.form, w2._row._mp)
             else:
                 try:
                     b, e = NE.begend(w2.form, w2._row._mp, last_word_form)
                     end = w2.begin + e
                 except Exception as err:
-                    #if last_word_form.endswith('것') :
-                    #    end = w2.begin + len(last_word_form)
-                    #else:
-                    if not valid :
-                        begin = w1.begin
-                        end = w2.end
-                        print('ERROR', row._gid, row._form, row._sr_pred, row._sr_args,
+                    #
+                    # rough guess. possibly bad guess.
+                    #
+                    end = w2.begin + len(last_word_form)
+                    if valid :
+                        print('ERROR_SRLArgument.from_min:multiword2', row._gid, row._form, row._sr_pred, row._sr_args,
                               '# {} => {} ({})'.format(sr_arg_str, w2.form, w2._row._mp), sep="\t")
-                       
-                        #print(row._gid, sr_arg_str, w2.form, w2._row._mp)
-                    else:
-                        raise Exception('SRLArgument.from_min:multiword', row._gid, sr_arg_str, w2.form, w2._row._mp, err)
+                        #raise Exception('SRLArgument.from_min:multiword2', row._gid, sr_arg_str, w2.form, w2._row._mp, err)
 
 
             arg_form = sent.form[begin:end]
@@ -1004,7 +997,7 @@ class ZA(nikl.ZA):
         zas = []
         for row in document._rows:
             if row._za_pred != '' or row._za_ante != '':
-                z = ZA.from_min(row, parent=document, valid = False)
+                z = ZA.from_min(row, parent=document, valid = valid)
                 row.za = z
                 zas.append(z)
             else:
@@ -1028,7 +1021,10 @@ class ZAAntecedent(nikl.ZAAntecedent):
         ante_str = row._za_ante
         doc = row.document
 
-        parsed = cls.parse_za_ante_str(ante_str)
+        try:
+            parsed = cls.parse_za_ante_str(ante_str)
+        except Exception as e:
+            raise Exception('{} ({})'.format(e, row._gid))
         ante_form = parsed['form']
         snum = parsed['snum']
         ante_wid = parsed['word_id']
@@ -1058,14 +1054,16 @@ class ZAAntecedent(nikl.ZAAntecedent):
                     ante_begin = ante_word.begin + b
                     ante_end = ante_word.begin + e
                 except:
-                    if not valid:
-                        ante_begin = ante_word.begin
-                        ante_end = ante_word.end
-                        print('ERROR', row._gid, row.word.swid, row._form, row._za_pred, row._za_ante,
+                    #
+                    # rough guess. possibly bad guess.
+                    #
+                    ante_begin = ante_word.begin
+                    ante_end = ante_begin + len(ante_form)
+                    if valid:
+                        print('ERROR_ZAAntecedent.from_min', row._gid, row.word.swid, row._form, row._za_pred, row._za_ante,
                               '# {} ({})'.format(ante_word.form, ante_word._row._mp),
                               sep = '\t')
-                    else:
-                        raise Exception('ZAAntecedent.from_min', row._gid, row._form, ante_str, ante_word.form, ante_word._row._mp)
+                        #raise Exception('ZAAntecedent.from_min', row._gid, row._form, ante_str, ante_word.form, ante_word._row._mp)
 
 
         return cls(parent=parent, form=ante_form, type='subject', sentence_id=ante_sent_id,
