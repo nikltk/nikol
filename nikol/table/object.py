@@ -769,11 +769,13 @@ class SRLPredicate(nikl.SRLPredicate):
             raise ValueError("{} at '{}' ({})".format(e, pred_str, row))
         
         #
-        # TODO: proess form; compute begin and end
+        # proess form
+        # - remove period (.) and comma (,)
+        # - compute begin and end
         #
-        form = word.form
-        begin = word.begin
-        end = word.end
+        form = word.form.strip('.,')
+        begin = word.begin + word.form.find(form)
+        end = begin + len(form)
 
         return SRLPredicate(parent = parent, form = form, begin = begin, end = end,
                             lemma = lemma, sense_id = sense_id)
