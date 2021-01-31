@@ -56,9 +56,9 @@ class Document(nikl.Document):
     def make_za_corpus(self, valid = False):
         self.process_za(valid = valid)
  
-    def make_dp_corpus(self):
+    def make_dp_corpus(self, valid = False):
         for s in self.sentence_list:
-            s.process_dp()
+            s.process_dp(valid = valid)
 
     def make_sr_corpus(self, valid = False):
         for s in self.sentence_list:
@@ -149,8 +149,8 @@ class Sentence(nikl.Sentence):
 
         return self.DP
 
-    def process_dp(self):
-        self.DP = DP.process_sentrows(self._rows)
+    def process_dp(self, valid = False):
+        self.DP = DP.process_sentrows(self._rows, valid = valid)
 
     @property
     def srl_list(self):
@@ -647,7 +647,7 @@ class DP(nikl.DP):
         self._row = row
 
     @classmethod
-    def from_min(cls, row):
+    def from_min(cls, row, valid = False):
         return cls(parent = row.sentence,
                    word_id = row.word.id,
                    word_form = row.word.form,
@@ -661,17 +661,17 @@ class DP(nikl.DP):
         return self.__word
 
     @classmethod
-    def process_sentrows(cls, sentrows):
+    def process_sentrows(cls, sentrows, valid = False):
         if type(sentrows[0]).__name__ == 'UnifiedMinRow':
-            return DP.process_min_sentrows(sentrows)
+            return DP.process_min_sentrows(sentrows, valid = valid)
         else:
             raise NotImplementedError
 
     @classmethod
-    def process_min_sentrows(cls, sentrows):
+    def process_min_sentrows(cls, sentrows, valid = False):
         dps = []
         for row in sentrows:
-            d = DP.from_min(row)
+            d = DP.from_min(row, valid = valid)
             row.dp = d
             dps.append(d)
 
