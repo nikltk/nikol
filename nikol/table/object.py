@@ -41,9 +41,9 @@ class Document(nikl.Document):
             self.ZA = ZA.process_docrows(self, valid = valid) 
 
 
-    def make_mp_corpus(self):
+    def make_mp_corpus(self, valid = False):
         for s in self.sentence_list:
-            s.process_morpheme()
+            s.process_morpheme(valid = valid)
 
     def make_ls_corpus(self, valid = False):
         for s in self.sentence_list:
@@ -109,8 +109,8 @@ class Sentence(nikl.Sentence):
 
         return self.morpheme
 
-    def process_morpheme(self):
-        self.morpheme = Morpheme.process_sentrows(self._rows)
+    def process_morpheme(self, valid = False):
+        self.morpheme = Morpheme.process_sentrows(self._rows, valid = valid)
 
     @property 
     def ls_list(self):
@@ -215,7 +215,8 @@ class Morpheme(nikl.Morpheme):
                  morph_str: str,
                  id: int = None,
                  row = None,
-                 position: int = None):
+                 position: int = None,
+                 valid = False):
         
         parsed = cls.parse_mp_str(morph_str)
         form = parsed['form'] 
@@ -247,26 +248,32 @@ class Morpheme(nikl.Morpheme):
         return {'form' : form, 'label': label}
         
     @classmethod
-    def process_sentrows(cls, sentrows):
+    def process_sentrows(cls, sentrows, valid = False):
         if type(sentrows[0]).__name__ == 'UnifiedMinRow':
-            return Morpheme.process_min_sentrows(sentrows)
+            return Morpheme.process_min_sentrows(sentrows, valid = valid)
         else:
             raise NotImplementedError
 
     @classmethod
-    def process_min_sentrows(cls, sentrows):
+    def process_min_sentrows(cls, sentrows, valid = False):
         morphemes = []
         morph_id = 0
         for row in sentrows:
             row_morphs = []
             for (p, morph_str) in enumerate(row._mp.split(' + ')):
                 morph_id += 1
-                m = cls.from_min(morph_str, id=morph_id, position=p+1, row=row)
+                m = cls.from_min(morph_str, id=morph_id, position=p+1, row=row, valid = valid)
                 row_morphs.append(m)
+                
+            if valid:
+                try:
+                    nikol.valid.begend(row._form, row_morphs)
+                except Exception as e:
+                    raise Exception('Morpheme.process_min_sentrows', row._form, row._mp, e)
 
             row.morphemes = row_morphs
             morphemes += row_morphs
-
+            
         return morphemes
 
 class WSD(nikl.WSD):
