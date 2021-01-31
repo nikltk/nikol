@@ -60,7 +60,7 @@ class Document(nikl.Document):
         for s in self.sentence_list:
             s.process_dp()
 
-    def make_sr_corpus(self):
+    def make_sr_corpus(self, valid = False):
         for s in self.sentence_list:
             s.process_srl()
 
@@ -159,8 +159,8 @@ class Sentence(nikl.Sentence):
 
         return self.SRL
 
-    def process_srl(self):
-        self.SRL = SRL.process_sentrows(self._rows)
+    def process_srl(self, valid = False):
+        self.SRL = SRL.process_sentrows(self._rows, valid = valid)
 
 class Word(nikl.Word):
     """
@@ -491,7 +491,6 @@ class NE(nikl.NE):
         
         Or morphemes = list of dict {'form', 'label'}
         """
-
         if type(morphemes) is str:
             mps = [Morpheme.parse_mp_str(mp) for mp in morphemes.split(' + ')]
         elif type(morphemes) is list:
@@ -520,10 +519,10 @@ class NE(nikl.NE):
                 begin = finds[0]
                 end = begin + len(head)
             else:
-                raise Exception('NE.begend', subwordform, finds, mps)
+                raise Exception('NE.begend', subwordform, finds, morphemes)
             
         else:
-            raise Exception('NE.begend', wordform, mps, subwordform)
+            raise Exception('NE.begend', wordform, morphemes, subwordform)
  
         return begin, end
 
@@ -694,15 +693,15 @@ class SRL(nikl.SRL):
         self._row = row
 
     @classmethod
-    def from_min(cls, row):
+    def from_min(cls, row, valid = False):
         args_str = row._sr_args
 
         srl = cls(parent=row.sentence, row=row)
 
-        predicate = SRLPredicate.from_min(row, parent=srl)
+        predicate = SRLPredicate.from_min(row, parent = srl, valid = valid)
         arguments = []
         for arg_str in args_str.split():
-            arguments.append(SRLArgument.from_min(arg_str, parent=srl))
+            arguments.append(SRLArgument.from_min(arg_str, parent=srl, valid = valid))
 
         srl.predicate = predicate
         srl.argument = arguments
@@ -713,14 +712,14 @@ class SRL(nikl.SRL):
         return SRLArgument.parse_sr_arg_str(sr_arg_str)
 
     @classmethod
-    def process_sentrows(cls, sentrows):
+    def process_sentrows(cls, sentrows, valid = False):
         if type(sentrows[0]).__name__ == 'UnifiedMinRow':
-            return SRL.process_min_sentrows(sentrows)
+            return SRL.process_min_sentrows(sentrows, valid = valid)
         else:
             raise NotImplementedError
 
     @classmethod
-    def process_min_sentrows(cls, sentrows):
+    def process_min_sentrows(cls, sentrows, valid = False):
         srls = []
         for row in sentrows:
             if row._sr_pred is None and row._sr_args is None:
@@ -729,7 +728,7 @@ class SRL(nikl.SRL):
             elif row._sr_pred == '' and row._sr_args == '':
                 row.srl = None
                 continue
-            srl = SRL.from_min(row)
+            srl = SRL.from_min(row, valid = valid)
             row.srl = srl
             srls.append(srl)
 
@@ -751,7 +750,7 @@ class SRLPredicate(nikl.SRLPredicate):
         super().__init__(parent=parent, form=form, begin=begin, end=end, lemma=lemma, sense_id=sense_id)
 
     @classmethod
-    def from_min(cls, row, parent: SRL):
+    def from_min(cls, row, parent: SRL, valid = False):
         pred_str = row._sr_pred
         word = row.word
 
@@ -798,23 +797,75 @@ class SRLArgument(nikl.SRLArgument):
         super().__init__(parent = parent, form = form, label = label, begin = begin, end = end)
 
     @classmethod
-    def from_min(cls, sr_arg_str, parent: SRL):
+    def from_min(cls, sr_arg_str, parent: SRL, valid = False):
         sent = parent.parent
-
+        row = parent._row
         parsed = cls.parse_sr_arg_str(sr_arg_str)
         last_word_form = parsed['form']
         label = parsed['label']
         w1id = parsed['begin_word_id']
         w2id = parsed['end_word_id']
 
+
         w1 = sent.word_list[w1id - 1]
         w2 = sent.word_list[w2id - 1]
- 
-        begin = w1.begin
-        end = w2.begin + len(last_word_form)
-        form = sent.form[begin:end]
+        if w1id == w2id:
+            # single word argument
 
-        arg = cls(parent = parent, form = form, label = label, begin = begin, end = end)
+            arg_form = last_word_form
+            ind = w1.form.find(arg_form)
+            indr = w1.form.rfind(arg_form)
+            if ind != -1 and ind == indr:
+                begin = w1.begin + ind
+                end = begin + len(arg_form)
+            else:
+                try:
+                    b, e = NE.begend(w1.form, w1._row._mp, arg_form)
+                    begin = w1.begin + b
+                    end = w1.begin + e
+                except Exception as err:
+                    #if last_word_form.endswith('것') :
+                    #    begin = w1.begin
+                    #    end = w1.begin + len(last_word_form)
+                    if len(last_word_form) > 1 and w2.form.startswith(last_word_form[:-1]):
+                        decomp1 = nikol.valid.util.decompose(last_word_form[-1])
+                        decomp2 = nikol.valid.util.decompose(w2.form[len(last_word_form)-1])
+                        if decomp1[:-1] == decomp2[:-1]:
+                            begin = w1.begin 
+                            end = w2.begin + len(last_word_form)
+                        else:
+                            raise Exception('SRLArgument.from_min:singleword', row._gid, sr_arg_str, w2.form, w2._row._mp)
+                    else:
+                        raise Exception('SRLArgument.from_min:single_word', row._gid, sr_arg_str, w1.form, w1._row._mp)
+        else:
+            # multiword argument
+            w2 = sent.word_list[w2id - 1]
+ 
+            begin = w1.begin
+        
+            if w2.form.startswith(last_word_form): 
+                end = w2.begin + len(last_word_form)
+            elif len(last_word_form) > 1 and w2.form.startswith(last_word_form[:-1]):
+                decomp1 = nikol.valid.util.decompose(last_word_form[-1])
+                decomp2 = nikol.valid.util.decompose(w2.form[len(last_word_form)-1])
+                if decomp1[:-1] == decomp2[:-1]:
+                    end = w2.begin + len(last_word_form)
+                else:
+                    raise Exception('SRLArgument.from_min:multiword', row._gid, sr_arg_str, w2.form, w2._row._mp)
+            else:
+                try:
+                    b, e = NE.begend(w2.form, w2._row._mp, last_word_form)
+                    end = w2.begin + e
+                except Exception as err:
+                    #if last_word_form.endswith('것') :
+                    #    end = w2.begin + len(last_word_form)
+                    #else:
+                    raise Exception('SRLArgument.from_min:multiword', row._gid, sr_arg_str, w2.form, w2._row._mp, err)
+
+
+            arg_form = sent.form[begin:end]
+
+        arg = cls(parent = parent, form = arg_form, label = label, begin = begin, end = end)
 
         return arg
 
