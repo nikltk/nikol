@@ -7,7 +7,7 @@
 #    word : []
 #    SRL : [ {
 #              predicate : { form, begin, end, lemma, sense_id },
-#              argument : { form, label, begin, end, word_id }
+#              argument : { form, label, begin, end }
 #           } ]
 #
 #
@@ -61,7 +61,10 @@ def table_sentence_full(sentence, valid=False):
         
         rows.append('')
         rows.append('\t'.join([
-            sentence.fwid, predicate.slice_str, 'predicate',
+            sentence.fwid,
+            str(word.id),
+            word.form,
+            predicate.slice_str, 'predicate',
             predicate.form, predicate.str,
             ''.join(predicate._error)
         ]))
@@ -71,14 +74,15 @@ def table_sentence_full(sentence, valid=False):
             argument._error = []
             
             word_1 = sentence.wordAt(argument.begin)
+            argument._word_id = word_1.id
             arg_form_toks = argument.form.split()
 
             if len(arg_form_toks) == 0:
                 argument._error.append('ErrorSRLArgumentFormNull();')
-            elif not word_1.form.startswith(arg_form_toks[0][0]):
+            elif word_1.form.find(arg_form_toks[0][0]) == -1:
                 argument._error.append('ErrorSRLArgumentFormBegin({});'.format(word_1.form))
                 
-            word = sentence.word_list[argument.word_id - 1]
+            word = sentence.word_list[argument._word_id - 1]
 
             
             if hasattr(word, '_argument'):
@@ -96,6 +100,8 @@ def table_sentence_full(sentence, valid=False):
 
             rows.append('\t'.join([
                 sentence.fwid,
+                str(word.id),
+                word.form,
                   argument.slice_str, 'argument',
                   argument.label,
                   argument.form,
