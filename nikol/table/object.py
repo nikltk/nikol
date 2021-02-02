@@ -1,7 +1,10 @@
-"""
+"""Nikol Table Objects: Adapters for Niklanson Objects (koltk.corpus.nikl.annotated)
+
+convert NikolTable to Niklanson (NIKL Annotated Corpus JSON)
 """
 import koltk.corpus.nikl.annotated as nikl
 import nikol.valid
+from . import tag
 
 class Document(nikl.Document):
     def __init__(self,
@@ -237,16 +240,8 @@ class Morpheme(nikl.Morpheme):
         """
         :param mp_str: example) 'HHH/NNP', '//SP'
         """
-        morph_str = mp_str
-        try:
-            slash_idx = morph_str.rfind('/')
-            form = morph_str[:slash_idx]
-            label = morph_str[(slash_idx+1):]
-        except:
-            raise ValueError("invalid literal for mp_str: '{}'".format(mp_str))
-
-        return {'form' : form, 'label': label}
-        
+        return tag.MP_str(mp_str)
+       
     @classmethod
     def process_sentrows(cls, sentrows, valid = False):
         if type(sentrows[0]).__name__ == 'UnifiedMinRow':
@@ -315,24 +310,7 @@ class WSD(nikl.WSD):
         :param ls_str: eg) '한글__001/NNG', '가/JKS'
         :return: eg) {'form': '한글', 'sense_id': 1, 'pos': 'NNG'}, {'form': '가', 'sense_id': None, 'pos': 'JKS'}
         """
-        try:
-            slash_idx = ls_str.rfind('/')
-            pos = ls_str[(slash_idx+1):]
-            form_sense = ls_str[:slash_idx].split('__')
-        except:
-            raise ValueError("invalid literal for ls_str: '{}'".format(ls_str)) 
-
-        if len(form_sense) == 1:
-            form = form_sense[0]
-            sense_id = None
-        elif len(form_sense) == 2:
-            form = form_sense[0]
-            sense_id = int(form_sense[1])
-        else:
-            raise ValueError("invalid literal for ls_str: '{}'".format(ls_str)) 
-
-        return {'form' : form, 'sense_id' : sense_id, 'pos' : pos }
-        
+        return tag.LS_str(ls_str)
 
     @classmethod
     def process_sentrows(cls, sentrows, morpheme_as_wsd = False, valid = False):
@@ -466,29 +444,10 @@ class NE(nikl.NE):
     def parse_ne_str(cls, ne_str):
         """
         :param ne_str: eg) 'HHH/PS@(0)'
-        :type ne_str: str
-        
         :return: eg) {'form' : 'HHH', 'label' : 'PS', 'begin_within_word' : 0 }
-        :rtype: dict
         """
- 
-        slash_idx = ne_str.rfind('/')
-        if slash_idx == -1:
-            raise ValueError("invalid literal for ne_str: '{}'".format(ne_str))
-
-        form = ne_str[:slash_idx]
-        label_beg = ne_str[(slash_idx+1):].split('@')
-        if len(label_beg) == 1:
-            label = label_beg[0]
-            beg = None
-        elif len(label_beg) == 2:
-            label = label_beg[0]
-            beg = int(label_beg[1].strip('()'))
-        else:
-            raise ValueError("invalid literal for ne_str: '{}'".format(ne_str))
-
-        return {'form' : form, 'label' : label, 'begin_within_word' : beg }
-        
+        return tag.NE_str(ne_str)
+       
     @classmethod
     def begend(cls, wordform, morphemes, subwordform):
         """
@@ -910,20 +869,7 @@ class SRLArgument(nikl.SRLArgument):
 
         :return: {'form' : 'HHHHHH', 'label' : 'ARG0', 'begin_word_id' : 4, 'end_word_id' : 9}
         """
-        try:
-            slash_idx = sr_arg_str.rfind('/')
-            arg_form = sr_arg_str[:slash_idx]
-            label_wordrange_str = sr_arg_str[(slash_idx+1):]
-            label, wordrange_str = label_wordrange_str.split('__@')
-            wordids = wordrange_str.split('-')
-            w1id = int(wordids[0])
-            w2id = int(wordids[1]) if len(wordids) == 2 else w1id
-        except:
-            raise ValueError("invalid literal for sr_arg_str: '{}'".format(sr_arg_str))
-
-
-        return {'form' : arg_form, 'label' : label, 'begin_word_id' : w1id, 'end_word_id' : w2id }
-    
+        return tag.SR_ARG_str(sr_arg_str)
 
 class ZA(nikl.ZA):
     def __init__(self,
@@ -1077,26 +1023,5 @@ class ZAAntecedent(nikl.ZAAntecedent):
         :type za_ante_str: str
 
         :return: example) {'form': 'HHH', 'snum': 's3', 'word_id': 9}
-        :rtype: dict
         """
-        try:
-            #
-            # eg) za_ante_str = 'HHH__@s3_9' or 'HHH__@-1'
-            #
-            ante_form, ante_swid = za_ante_str.split('__@')
-
-            if ante_swid == '-1':
-                ante_sid = '-1'
-                ante_wid = None
-            else:
-                ante_sid, ante_wid = ante_swid.split('_')
-                ante_wid = int(ante_wid)
-
-        except:
-            raise ValueError("invalid literal for za_ante_str: '{}'".format(za_ante_str))
- 
-        return {'form' : ante_form, 'snum' : ante_sid, 'word_id' : ante_wid}
-
- 
-
-
+        return tag.ZA_ANTE_str(za_ante_str)

@@ -1,3 +1,5 @@
+"""Nikol Table Rows
+"""
 import builtins
 from .object import Document, Sentence, ZA
 

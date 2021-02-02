@@ -1,5 +1,7 @@
+"""Nikol Table Readers
+"""
 from .object import Document, Sentence, Word
-from .table import *
+from .row import *
 
 def reader(file, format=None):
     """
