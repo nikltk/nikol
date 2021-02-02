@@ -400,10 +400,10 @@ class WSD(nikl.WSD):
                                 # CRITICAL ERROR:
                                 # need to compute begin:end
                                 if valid:
-                                    raise Exception("# ErrorWSDBeginEnd(); ls.str: {} word.form: {} row._ls: {} sentence.form: {} sentence.id: {}\nbegend('{}', {}) # => {}"
+                                    print(Exception("# ErrorWSDBeginEnd(); ls.str: {} word.form: {} row._ls: {} sentence.form: {} sentence.id: {}\nbegend('{}', {}) # => {}"
                                                     .format(ls.str, row.word.form, row._ls,
                                                             row.sentence.form, row.sentence.id,
-                                                            row.word.form, mps, e))
+                                                            row.word.form, mps, e)))
                                 else:
                                     # WARNING!!!
                                     #
