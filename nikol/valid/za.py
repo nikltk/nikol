@@ -63,6 +63,9 @@ def valid_za(document):
         #
         # check predicate form
         #
+        if word.form.find(pred.form) == -1:
+            if sentence.form[pred.slice] != pred.form:
+                za._error.append('ErrorZAPredicatForm();')
 
         if pred.form != word.form:
             

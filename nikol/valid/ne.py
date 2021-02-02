@@ -115,9 +115,15 @@ def table(document, spec='min', valid=False):
                 ne._error.append('ErrorNEId({}->{});'.format(ne.id, i+1))
                 
             if sentence.form[ne.slice] != ne.form:
-                #if util.form_match(ne.form, sentence.form[ne.slice]): continue
-                ne._error.append('ErrorNEFormBeginEnd({});'.format(sentence.form[ne.slice]))
+                
+                try:
+                    is_matched = util.form_match(ne.form, sentence.form[ne.slice])
+                except:
+                    is_matched = False
 
+                if is_matched: continue
+                ne._error.append('ErrorNEFormBeginEnd({});'.format(sentence.form[ne.slice]))
+                    
             # map ne to word
             found = False
             for word in sentence.word_list:
