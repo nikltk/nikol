@@ -71,7 +71,7 @@ def valid_morpheme(sentence):
 
     for word in sentence.word_list:
         if len(word._morph) == 1 and word.form != word._morph[0].form:
-            if sentence.id.startswith('S') and word.form.endswith('~') and word._morph[0].label == 'IC':
+            if sentence.id.startswith('S') and word.form.endswith('~')# and word._morph[0].label == 'IC':
                 pass
             else:
                 word._morph[0]._error.append('ErrorMorphemeForm();')

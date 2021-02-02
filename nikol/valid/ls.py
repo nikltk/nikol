@@ -117,7 +117,7 @@ def valid_ls(document):
             
         for word in sentence.word_list:
             if len(word._morphs) == 1 and word.form != word._morphs[0].form:
-                if sentence.id.startswith('S') and word.form.endswith('~') and word._morphs[0].label == 'IC':
+                if sentence.id.startswith('S') and word.form.endswith('~'): # and word._morphs[0].label == 'IC':
                     pass
                 else:
                     word._error.append('ErrorMorphemeForm({});'.format(word._morphs[0].form))
