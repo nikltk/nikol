@@ -291,10 +291,13 @@ class WSD(nikl.WSD):
                  end: int = None,
                  row = None):
 
-        parsed = cls.parse_ls_str(ls_str)
-        form = parsed['form']
-        sense_id = parsed['sense_id']
-        pos = parsed['pos']
+        try:
+            parsed = cls.parse_ls_str(ls_str)
+            form = parsed['form']
+            sense_id = parsed['sense_id']
+            pos = parsed['pos']
+        except Exception as e:
+            raise Exception("{} at '{}' ({})".format(e, row._ls, row._gid))
         
         if row is not None:
             parent = row.sentence
