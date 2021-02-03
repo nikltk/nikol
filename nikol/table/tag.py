@@ -1,5 +1,8 @@
 """Nikol Table Tag Strings
 """
+import re
+from koltk.corpus.nikl.annotated.tag import POS_TAGS, NE_TAGS, SYN_TAGS, FUN_TAGS, SR_TAGS
+
 
 class NikolTableTagString(dict):
     def __init__(self, x = None, **kwargs):
@@ -56,6 +59,9 @@ class MP_str(NikolTableTagString):
         except:
             raise ValueError("invalid literal for mp_str: '{}'".format(mp_str))
 
+        if label not in POS_TAGS:
+            raise ValueError("invalid label for mp_str: '{}'".format(mp_str))
+
         return {'form' : form, 'label': label}
         
     def __str__(self):
@@ -76,14 +82,28 @@ class LS_str(NikolTableTagString):
         except:
             raise ValueError("invalid literal for ls_str: '{}'".format(ls_str)) 
 
+        if pos not in POS_TAGS:
+            raise ValueError("invalid pos for ls_str: '{}'".format(ls_str))
+
         if len(form_sense) == 1:
             form = form_sense[0]
             sense_id = None
         elif len(form_sense) == 2:
             form = form_sense[0]
-            sense_id = int(form_sense[1])
+            try:
+                sense_id = int(form_sense[1])
+            except:
+                raise ValueError("invalid sense_id for ls_str: '{}'".format(ls_str)) 
+
+            if len(form_sense[1]) != 3:
+                raise ValueError("invalid sense_id literal for ls_str: '{}'".format(ls_str)) 
+            
+            if not (0 < sense_id < 90 or sense_id in [777, 888, 999]):
+                raise ValueError("invalid sense_id for ls_str: '{}'".format(ls_str)) 
+
         else:
             raise ValueError("invalid literal for ls_str: '{}'".format(ls_str)) 
+        
 
         return {'form' : form, 'sense_id' : sense_id, 'pos' : pos }
         
@@ -119,6 +139,10 @@ class NE_str(NikolTableTagString):
         else:
             raise ValueError("invalid literal for ne_str: '{}'".format(ne_str))
 
+
+        if label not in NE_TAGS:
+            raise ValueError("invalid label for ne_str: '{}'".format(ne_str))
+
         return {'form' : form, 'label' : label, 'begin_within_word' : beg }
  
    
@@ -144,12 +168,22 @@ class SR_ARG_str(NikolTableTagString):
             arg_form = sr_arg_str[:slash_idx]
             label_wordrange_str = sr_arg_str[(slash_idx+1):]
             label, wordrange_str = label_wordrange_str.split('__@')
-            wordids = wordrange_str.split('-')
-            w1id = int(wordids[0])
-            w2id = int(wordids[1]) if len(wordids) == 2 else w1id
         except:
             raise ValueError("invalid literal for sr_arg_str: '{}'".format(sr_arg_str))
 
+        if label not in SR_TAGS:
+            raise ValueError("invalid label for sr_arg_str: '{}'".format(sr_arg_str))
+
+        if re.match('^[0-9]+(-[0-9]+)?$', wordrange_str) is None:
+            raise ValueError("invalid word range literal for sr_arg_str: '{}'".format(sr_arg_str))
+            
+        wordids = wordrange_str.split('-')
+        w1id = int(wordids[0])
+        w2id = int(wordids[1]) if len(wordids) == 2 else w1id
+
+        if w1id > w2id: 
+            raise ValueError("invalid word range for sr_arg_str: '{}'".format(sr_arg_str))
+        
         return {'form' : arg_form, 'label' : label, 'begin_word_id' : w1id, 'end_word_id' : w2id }
         
 
