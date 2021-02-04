@@ -195,7 +195,7 @@ class SR_ARG_str(NikolTableTagString):
 
 class ZA_ANTE_str(NikolTableTagString):
     @classmethod
-    def parse(cls, za_snte_str):
+    def parse(cls, za_ante_str):
         """
         :param za_ante_str: example) HHH__@s3_9
         :type za_ante_str: str
