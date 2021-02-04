@@ -28,7 +28,7 @@ from nikol.main.command import SimpleCommand
 import nikol.valid  
 import nikol.table
 
-from koltk.corpus.nikl.annotated import NiklansonReader
+from koltk.corpus.nikl.annotated import NiklansonReader, NiklansonDocumentReader
 
 def init(app):
     return ConvCommand(app)
@@ -85,6 +85,11 @@ class ConvCommand(SimpleCommand):
         # json options
         self.parser.add_argument('--json-indent', type=int, dest='json_indent',
                                  help='json dump indent')
+
+
+        # metadata
+        self.parser.add_argument('--json-template', type=str, dest='json_template',
+                                 help='JSON template')
 
     def run(self, argv):
         args = self.parser.parse_args(argv)
@@ -200,6 +205,12 @@ class ConvCommand(SimpleCommand):
         # args.corpus_type (use this for output json): 'mp', 'ls', 'ne', ...
         # args.filenames : ['*.tsv']
 
+        if args.json_template is not None:
+            with open(args.json_template) as file:
+                reader = NiklansonDocumentReader(file)
+                document_metadata = reader.document.metadata
+                document_id = reader.document.id
+
         filename = args.filenames[0]
 
         with open(filename, encoding = 'utf-8') as file:
@@ -216,7 +227,14 @@ class ConvCommand(SimpleCommand):
                     #sys.exit(e)
                     
                 if not args.valid:
-                    print(document.json(indent = args.json_indent))
+                    if args.json_template is not None:
+                        if document.id == document_id:
+                            document.metadata = document_metadata
+                            print(document.json(indent = args.json_indent))
+                        else:
+                            sys.exit('document metadata error: document id does not match')
+                    else:
+                        print(document.json(indent = args.json_indent))
         
 
 def main(argv=None):
