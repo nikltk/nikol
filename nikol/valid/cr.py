@@ -37,7 +37,7 @@ def table(document, spec='min', valid=False):
             if mention.form.strip() != mention.form:
                 mention._error.append('ErrorCRMentionForm(strip);')
             sent = document.getSentenceById(mention.sentence_id)
-               
+
 
             if mention.slice.start == -1:
                 mention._error.append('ErrorCRMentionBeginEnd();')
@@ -45,16 +45,22 @@ def table(document, spec='min', valid=False):
                 try: 
                     if util.form_match(mention.form, sent.form, mention.slice): continue
                 except Exception as e:
-                    raise Exception('''sentence.id: {}\nsentence.form: {}\nmention.form: {}\nmention.slice: {}'''
-                                    .format(sent.id,
-                                            sent.form,
-                                            mention.form, mention.slice, str(e)))
+                    if valid:
+                        raise Exception('''sentence.id: {}\nsentence.form: {}\nmention.form: {}\nmention.slice: {}'''
+                                        .format(sent.id,
+                                                sent.form,
+                                                mention.form, mention.slice, str(e)))
+
+
                 
                 mention._error.append('ErrorCRMentionForm({});'.format(sent.form[mention.slice]))
 
             try:
-                w1 = sent.wordAt(mention.begin)
-                w1_id = w1.id
+                if mention.begin < 0:
+                    w1_id = '?'
+                else:
+                    w1 = sent.wordAt(mention.begin)
+                    w1_id = w1.id
             except Exception as e:
                 w1_id = '?'
                 mention._error.append('ErrorCRMentionBeginEnd({});'.format(sent.form[mention.slice]))
