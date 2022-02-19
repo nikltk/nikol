@@ -220,10 +220,18 @@ class Morpheme(nikl.Morpheme):
                  row = None,
                  position: int = None,
                  valid = False):
-        
-        parsed = cls.parse_mp_str(morph_str)
-        form = parsed['form'] 
-        label = parsed['label'] 
+
+        try:
+            parsed = cls.parse_mp_str(morph_str)
+            form = parsed['form'] 
+            label = parsed['label'] 
+        except Exception as e:
+            if valid:
+                form = morph_str
+                label = morph_str
+                print(row._gid, row._form, row._mp, "# {}".format(e), sep='\t')
+            else:
+                raise Exception("{} at {} ({})".format(e, row._mp, row._gid))
 
         if row is not None:
             parent = row.sentence
@@ -264,7 +272,8 @@ class Morpheme(nikl.Morpheme):
                 try:
                     nikol.valid.begend(row._form, row_morphs)
                 except Exception as e:
-                    raise Exception('Morpheme.process_min_sentrows', row._form, row._mp, e)
+                    pass
+                    #raise Exception('Morpheme.process_min_sentrows', row._form, row._mp, e)
 
             row.morphemes = row_morphs
             morphemes += row_morphs

@@ -88,8 +88,8 @@ class ConvCommand(SimpleCommand):
 
 
         # metadata
-        self.parser.add_argument('--json-template', type=str, dest='json_template',
-                                 help='JSON template')
+        self.parser.add_argument('--json-document-metadata', type=str, dest='json_document_metadata',
+                                 help='json document metadata')
 
     def run(self, argv):
         args = self.parser.parse_args(argv)
@@ -205,8 +205,8 @@ class ConvCommand(SimpleCommand):
         # args.corpus_type (use this for output json): 'mp', 'ls', 'ne', ...
         # args.filenames : ['*.tsv']
 
-        if args.json_template is not None:
-            with open(args.json_template) as file:
+        if args.json_document_metadata is not None:
+            with open(args.json_document_metadata) as file:
                 reader = NiklansonDocumentReader(file)
                 document_metadata = reader.document.metadata
                 document_id = reader.document.id
@@ -227,7 +227,7 @@ class ConvCommand(SimpleCommand):
                     #sys.exit(e)
                     
                 if not args.valid:
-                    if args.json_template is not None:
+                    if args.json_document_metadata is not None:
                         if document.id == document_id:
                             document.metadata = document_metadata
                             print(document.json(indent = args.json_indent))
